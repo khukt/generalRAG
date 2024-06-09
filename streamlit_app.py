@@ -66,8 +66,8 @@ if option == "Ask a Question":
     user_question = st.text_input("Enter your question:")
     if st.button("Ask"):
         # Combine all relevant text data for the model's context
-        crop_info = " ".join([crop['name'] + ": " + " ".join(crop.values()) for crop in data['crops']])
-        pest_info = " ".join([pest['name'] + ": " + " ".join(pest.values()) for pest in data['pests_diseases']])
+        crop_info = " ".join([crop['name'] + ": " + " ".join([str(value) for value in crop.values()]) for crop in data['crops']])
+        pest_info = " ".join([pest['name'] + ": " + " ".join([str(value) for value in pest.values()]) for pest in data['pests_diseases']])
         context = crop_info + " " + pest_info
         
         qa_result = qa_pipeline(question=user_question, context=context)
