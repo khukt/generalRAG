@@ -15,7 +15,7 @@ def load_model_and_tokenizer():
 
 tokenizer, model = load_model_and_tokenizer()
 
-def generate_explanation(prompt, max_length, temperature, top_k, top_p, repetition_penalty):
+def generate_explanation(prompt, 150, temperature, top_k, top_p, repetition_penalty):
     inputs = tokenizer.encode(prompt, return_tensors="pt")
     attention_mask = tokenizer(prompt, return_tensors="pt", padding=True, truncation=True)["attention_mask"]
     
