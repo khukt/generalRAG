@@ -7,7 +7,7 @@ with open('agriculture_data.json') as f:
     data = json.load(f)
 
 # Initialize the text generation model and tokenizer
-model_name = "distilgpt2"
+model_name = "EleutherAI/gpt-neo-125M"  # Smaller variant suitable for use in products
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModelForCausalLM.from_pretrained(model_name)
 text_generation_pipeline = pipeline("text-generation", model=model, tokenizer=tokenizer)
