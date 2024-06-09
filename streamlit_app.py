@@ -13,12 +13,12 @@ except Exception as e:
     st.error(f"Error loading data: {e}")
     data = {}
 
-# Initialize the transformer pipeline for text generation (lightweight GPT model)
+# Initialize the summarization pipeline (using t5-small)
 try:
-    gpt_pipeline = pipeline("text-generation", model="distilgpt2")
+    summarization_pipeline = pipeline("summarization", model="t5-small")
 except Exception as e:
-    st.error(f"Error loading GPT model: {e}")
-    gpt_pipeline = None
+    st.error(f"Error loading summarization model: {e}")
+    summarization_pipeline = None
 
 # Initialize the sentence transformer model for encoding
 try:
@@ -74,13 +74,10 @@ def search_database(question):
 
     return relevant_context
 
-# Function to summarize context using the GPT model
+# Function to summarize context using the summarization model
 def summarize_context(context):
-    input_text = f"Summarize the following context about growing tomatoes:\n{context}\nSummary:"
-    gpt_result = gpt_pipeline(input_text, max_length=150, num_return_sequences=1, truncation=True)
-    generated_text = gpt_result[0]['generated_text']
-    summary_start = generated_text.find("Summary:") + len("Summary:")
-    return generated_text[summary_start:].strip()
+    summarized = summarization_pipeline(context, max_length=100, min_length=30, do_sample=False)
+    return summarized[0]['summary_text']
 
 # Function to generate an answer using the GPT model
 def generate_answer(question, context):
@@ -100,12 +97,12 @@ if st.button("Ask"):
         context = search_database(user_question)
         if context.strip():
             st.write("**Context Provided to Model:**", context)
-            if gpt_pipeline:
+            if summarization_pipeline and gpt_pipeline:
                 # Generate the answer using the GPT model
                 answer = generate_answer(user_question, context)
                 st.write("**Answer:**", answer)
             else:
-                st.error("GPT pipeline is not initialized.")
+                st.error("Summarization or GPT pipeline is not initialized.")
         else:
             st.write("No relevant information found in the database.")
     else:
