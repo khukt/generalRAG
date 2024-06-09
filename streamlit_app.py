@@ -16,15 +16,21 @@ st.title("Agriculture Information Database")
 st.sidebar.title("Navigation")
 option = st.sidebar.selectbox("Choose a query type", ["Crop Information", "Pest and Disease Management", "Ask a Question"])
 
+# Function to get crop information
+def get_crop_info(crop_name):
+    for crop in data['crops']:
+        if crop['name'].lower() == crop_name.lower():
+            return crop
+    return None
+
 # Function to search relevant data from the database
 def search_database(question):
     relevant_context = ""
-
     question_lower = question.lower()
 
     # Search for relevant crop information
     for crop in data['crops']:
-        if crop['name'].lower() in question_lower:
+        if crop['name'].lower() in question_lower or any(keyword in question_lower for keyword in ["grow", "plant", "harvest", "water", "soil"]):
             relevant_context += f"Crop Name: {crop['name']}\n"
             relevant_context += f"Planting Season: {crop['planting_season']}\n"
             relevant_context += f"Harvest Time: {crop['harvest_time']}\n"
@@ -88,7 +94,7 @@ if option == "Ask a Question":
     if st.button("Ask"):
         context = search_database(user_question)
         formatted_context = format_context(context)
-        if formatted_context:
+        if formatted_context.strip():
             qa_result = qa_pipeline(question=user_question, context=formatted_context)
             answer = post_process_answer(qa_result['answer'], user_question)
             st.write(f"**Answer:** {answer}")
