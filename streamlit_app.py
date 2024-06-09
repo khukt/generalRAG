@@ -1,6 +1,7 @@
 import streamlit as st
 from transformers import T5Tokenizer, T5ForConditionalGeneration
 
+# Cache the loading of the model and tokenizer
 @st.cache_resource
 def load_model_and_tokenizer(model_name):
     tokenizer = T5Tokenizer.from_pretrained(model_name)
