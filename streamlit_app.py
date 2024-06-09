@@ -101,21 +101,24 @@ def summarize_context(context):
 st.header("Ask a Question")
 user_question = st.text_input("Enter your question:")
 if st.button("Ask"):
-    if sentence_model:
-        # Search the database for relevant context
-        context = search_database(user_question)
-        if context.strip():
-            st.write("**Context Provided to Model:**", context)
-            if summarization_pipeline:
-                # Summarize the context
-                summary = summarize_context(context)
-                st.write("**Summary:**", summary)
+    try:
+        if sentence_model:
+            # Search the database for relevant context
+            context = search_database(user_question)
+            if context.strip():
+                st.write("**Context Provided to Model:**", context)
+                if summarization_pipeline:
+                    # Summarize the context
+                    summary = summarize_context(context)
+                    st.write("**Summary:**", summary)
+                else:
+                    st.error("Summarization pipeline is not initialized.")
             else:
-                st.error("Summarization pipeline is not initialized.")
+                st.write("No relevant information found in the database.")
         else:
-            st.write("No relevant information found in the database.")
-    else:
-        st.error("Sentence transformer model is not initialized.")
+            st.error("Sentence transformer model is not initialized.")
+    except Exception as e:
+        st.error(f"Error during processing: {e}")
 
 if __name__ == '__main__':
     st.write("Welcome to the Agriculture Information Database!")
