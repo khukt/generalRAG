@@ -3,7 +3,7 @@ import json
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from sentence_transformers import SentenceTransformer
-from transformers import pipeline, GPT2Tokenizer, GPT2LMHeadModel
+from transformers import pipeline
 
 # Load the JSON database
 try:
@@ -14,15 +14,13 @@ except Exception as e:
     st.error(f"Error loading data: {e}")
     data = {}
 
-# Initialize the text generation pipeline (using distilgpt2)
+# Initialize the summarization pipeline (using distilbart-xsum-12-6)
 try:
-    model_name = "distilgpt2"
-    tokenizer = GPT2Tokenizer.from_pretrained(model_name)
-    model = GPT2LMHeadModel.from_pretrained(model_name)
-    st.write("Text generation model (distilgpt2) loaded successfully.")
+    summarization_pipeline = pipeline("summarization", model="sshleifer/distilbart-xsum-12-6")
+    st.write("Summarization model loaded successfully.")
 except Exception as e:
-    st.error(f"Error loading text generation model: {e}")
-    tokenizer, model = None, None
+    st.error(f"Error loading summarization model: {e}")
+    summarization_pipeline = None
 
 # Initialize the sentence transformer model for encoding
 try:
@@ -93,15 +91,19 @@ def format_context(context):
     formatted_context += context.replace("\n", ". ").replace("  ", " ")
     return formatted_context
 
-# Function to summarize context using the text generation model
+# Function to summarize context using the summarization model
 def summarize_context(context):
     try:
         formatted_context = format_context(context)
-        prompt = f"Summarize the following information:\n\n{formatted_context}\n\nSummary:"
-        inputs = tokenizer.encode(prompt, return_tensors="pt", max_length=1024, truncation=True)
-        outputs = model.generate(inputs, max_length=150, num_return_sequences=1, no_repeat_ngram_size=2, early_stopping=True)
-        summary = tokenizer.decode(outputs[0], skip_special_tokens=True)
-        return summary
+        summarized = summarization_pipeline(
+            formatted_context, 
+            max_length=150, 
+            min_length=50, 
+            num_beams=4, 
+            length_penalty=2.0, 
+            early_stopping=True
+        )
+        return summarized[0]['summary_text']
     except Exception as e:
         st.error(f"Error summarizing context: {e}")
         return ""
@@ -116,12 +118,12 @@ if st.button("Ask"):
             context = search_database(user_question)
             if context.strip():
                 st.write("**Context Provided to Model:**", context)
-                if tokenizer and model:
+                if summarization_pipeline:
                     # Summarize the context
                     summary = summarize_context(context)
                     st.write("**Summary:**", summary)
                 else:
-                    st.error("Text generation model is not initialized.")
+                    st.error("Summarization pipeline is not initialized.")
             else:
                 st.write("No relevant information found in the database.")
         else:
