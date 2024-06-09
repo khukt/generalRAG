@@ -65,13 +65,28 @@ if option == "Ask a Question":
     st.header("Ask a Question")
     user_question = st.text_input("Enter your question:")
     if st.button("Ask"):
-        # Combine all relevant text data for the model's context
-        crop_info = " ".join([crop['name'] + ": " + " ".join([str(value) for value in crop.values()]) for crop in data['crops']])
-        pest_info = " ".join([pest['name'] + ": " + " ".join([str(value) for value in pest.values()]) for pest in data['pests_diseases']])
-        context = crop_info + " " + pest_info
+        # Determine relevant context
+        relevant_context = ""
         
-        qa_result = qa_pipeline(question=user_question, context=context)
-        st.write(f"**Answer:** {qa_result['answer']}")
+        # Check if the question is about a specific crop
+        crop_keywords = ["grow", "plant", "harvest", "water", "soil"]
+        if any(keyword in user_question.lower() for keyword in crop_keywords):
+            for crop in data['crops']:
+                if crop['name'].lower() in user_question.lower():
+                    relevant_context += " ".join([f"{key}: {value}" for key, value in crop.items()]) + " "
+        
+        # Check if the question is about pests or diseases
+        pest_keywords = ["pest", "disease", "treat", "symptom", "affect"]
+        if any(keyword in user_question.lower() for keyword in pest_keywords):
+            for pest in data['pests_diseases']:
+                if pest['name'].lower() in user_question.lower():
+                    relevant_context += " ".join([f"{key}: {value}" for key, value in pest.items()]) + " "
+
+        if relevant_context:
+            qa_result = qa_pipeline(question=user_question, context=relevant_context)
+            st.write(f"**Answer:** {qa_result['answer']}")
+        else:
+            st.write("No relevant information found in the database.")
 
 if __name__ == '__main__':
     st.write("Welcome to the Agriculture Information Database!")
