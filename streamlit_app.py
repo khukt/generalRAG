@@ -1,25 +1,17 @@
 import streamlit as st
-from transformers import T5Tokenizer, T5ForConditionalGeneration
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
-# Cache the loading of the model and tokenizer
 @st.cache_resource
-def load_model_and_tokenizer(model_name):
-    tokenizer = T5Tokenizer.from_pretrained(model_name)
-    model = T5ForConditionalGeneration.from_pretrained(model_name)
+def load_model_and_tokenizer():
+    tokenizer = AutoTokenizer.from_pretrained("distilgpt2")
+    model = AutoModelForCausalLM.from_pretrained("distilgpt2")
     return tokenizer, model
 
-# Load T5 model and tokenizer with caching
-model_name = "t5-base"
-tokenizer, model = load_model_and_tokenizer(model_name)
+tokenizer, model = load_model_and_tokenizer()
 
-def generate_explanation(question, context):
-    input_text = (
-        f"Explain how to grow tomatoes.\n"
-        f"Context: {context}\n\n"
-        f"Question: {question}"
-    )
-    inputs = tokenizer.encode(input_text, return_tensors="pt")
-    outputs = model.generate(inputs, max_length=300, num_return_sequences=1, early_stopping=True)
+def generate_explanation(prompt):
+    inputs = tokenizer.encode(prompt, return_tensors="pt")
+    outputs = model.generate(inputs, max_length=150, num_return_sequences=1)
     explanation = tokenizer.decode(outputs[0], skip_special_tokens=True)
     return explanation
 
@@ -38,7 +30,6 @@ context = st.text_area("Context provided to model:",
                        "Pests and Diseases: Aphids, Blight")
 
 if st.button("Generate Explanation"):
-    st.write("Generating explanation...")
-    explanation = generate_explanation(question, context)
-    st.write("Explanation generated.")
+    prompt = f"Question: {question}\nContext: {context}\nExplanation:"
+    explanation = generate_explanation(prompt)
     st.write(explanation)
