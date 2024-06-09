@@ -88,7 +88,14 @@ def search_database(question):
 # Function to summarize context using the summarization model
 def summarize_context(context):
     try:
-        summarized = summarization_pipeline(context, max_length=150, min_length=30, do_sample=False)
+        summarized = summarization_pipeline(
+            context, 
+            max_length=200, 
+            min_length=50, 
+            num_beams=4, 
+            length_penalty=2.0, 
+            early_stopping=True
+        )
         return summarized[0]['summary_text']
     except Exception as e:
         st.error(f"Error summarizing context: {e}")
