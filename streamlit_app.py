@@ -108,6 +108,7 @@ if option == "Ask a Question":
         context = generate_context(user_question)
         if context:
             qa_result = qa_pipeline(question=user_question, context=context)
+            st.write(f"**Answer:** {qa_result}")
             answer = post_process_answer(qa_result['answer'])
             st.write(f"**Answer:** {answer}")
         else:
