@@ -7,7 +7,7 @@ tokenizer = T5Tokenizer.from_pretrained(model_name)
 model = T5ForConditionalGeneration.from_pretrained(model_name)
 
 def generate_explanation(question, context):
-    input_text = f"question: {question} context: {context}"
+    input_text = f"Explain how to grow tomatoes. {context}"
     inputs = tokenizer.encode(input_text, return_tensors="pt")
     outputs = model.generate(inputs, max_length=150, num_return_sequences=1, early_stopping=True)
     explanation = tokenizer.decode(outputs[0], skip_special_tokens=True)
