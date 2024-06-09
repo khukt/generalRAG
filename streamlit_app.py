@@ -21,7 +21,7 @@ def generate_explanation(prompt, max_length, temperature, top_k, top_p, repetiti
     
     outputs = model.generate(
         inputs,
-        max_length=250,
+        max_length=max_length,
         temperature=temperature,
         top_k=top_k,
         top_p=top_p,
@@ -56,5 +56,10 @@ repetition_penalty = st.slider("Repetition Penalty", 1.0, 2.0, 1.2)
 
 if st.button("Generate Explanation"):
     prompt = f"Question: {question}\nContext: {context}\nExplanation:"
+    st.write("Debug Info: Prompt Sent to Model")
+    st.write(prompt)  # Debug info: show the prompt
     explanation = generate_explanation(prompt, max_length, temperature, top_k, top_p, repetition_penalty)
+    st.write("Debug Info: Generated Explanation")
+    st.write(explanation)  # Debug info: show the generated explanation
+    st.write("Explanation:")
     st.write(explanation)
