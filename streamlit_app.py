@@ -43,8 +43,10 @@ def search_database(question):
     return relevant_context
 
 # Function to post-process the model's answer
-def post_process_answer(answer):
-    return answer.strip()
+def post_process_answer(answer, question):
+    if not answer.strip():
+        return "I couldn't find the specific information you were looking for. Please try rephrasing your question or provide more details."
+    return f"Based on your question about '{question}', here is the information:\n\n{answer.strip()}"
 
 # Crop Information Page
 if option == "Crop Information":
@@ -84,7 +86,7 @@ if option == "Ask a Question":
         context = search_database(user_question)
         if context:
             qa_result = qa_pipeline(question=user_question, context=context)
-            answer = post_process_answer(qa_result['answer'])
+            answer = post_process_answer(qa_result['answer'], user_question)
             st.write(f"**Answer:** {answer}")
         else:
             st.write("No relevant information found in the database.")
