@@ -13,9 +13,9 @@ model, tokenizer = load_model()
 
 # Function to generate text based on input question and context
 def generate_paragraph(question, context):
-    input_text = f"Generate a detailed guide based on the following question and context.\nQuestion: {question}\nContext: {context}"
+    input_text = f"Generate a detailed guide for the following question and context.\n\nQuestion: {question}\n\nContext: {context}"
     inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
-    outputs = model.generate(inputs, max_length=150, num_beams=5, no_repeat_ngram_size=2, early_stopping=True)
+    outputs = model.generate(inputs, max_length=300, num_beams=5, no_repeat_ngram_size=2, early_stopping=True)
     answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
     return format_output(answer)
 
