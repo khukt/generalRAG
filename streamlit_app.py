@@ -3,7 +3,7 @@ import json
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from sentence_transformers import SentenceTransformer
-from transformers import pipeline, AutoModelForSeq2SeqLM, AutoTokenizer
+from transformers import pipeline
 
 # Load the JSON database
 try:
@@ -14,12 +14,9 @@ except Exception as e:
     st.error(f"Error loading data: {e}")
     data = {}
 
-# Initialize the summarization model and tokenizer
+# Initialize the summarization pipeline (using t5-small)
 try:
-    model_name = "sshleifer/distilbart-cnn-12-6"
-    summarization_model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
-    summarization_tokenizer = AutoTokenizer.from_pretrained(model_name)
-    summarization_pipeline = pipeline("summarization", model=summarization_model, tokenizer=summarization_tokenizer)
+    summarization_pipeline = pipeline("summarization", model="t5-small")
     st.write("Summarization model loaded successfully.")
 except Exception as e:
     st.error(f"Error loading summarization model: {e}")
