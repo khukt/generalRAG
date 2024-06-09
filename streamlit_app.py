@@ -13,12 +13,12 @@ except Exception as e:
     st.error(f"Error loading data: {e}")
     data = {}
 
-# Initialize the transformer pipeline for question answering
+# Initialize the transformer pipeline for text generation (lightweight GPT model)
 try:
-    qa_pipeline = pipeline("question-answering", model="distilbert-base-cased-distilled-squad")
+    gpt_pipeline = pipeline("text-generation", model="distilgpt2")
 except Exception as e:
-    st.error(f"Error loading transformer model: {e}")
-    qa_pipeline = None
+    st.error(f"Error loading GPT model: {e}")
+    gpt_pipeline = None
 
 # Initialize the sentence transformer model for encoding
 try:
@@ -74,38 +74,27 @@ def search_database(question):
 
     return relevant_context
 
-# Function to post-process the model's answer
-def post_process_answer(answer, question):
-    if not answer.strip():
-        return "I couldn't find the specific information you were looking for. Please try rephrasing your question or provide more details."
-    return f"Based on your question about '{question}', here is the information:\n\n{answer.strip()}"
-
-# Function to format context for better readability
-def format_context(context):
-    formatted_context = ""
-    lines = context.split("\n")
-    for line in lines:
-        if "Crop Name" in line:
-            formatted_context += f"\n**{line}**\n"
-        elif "Planting Season" in line or "Harvest Time" in line or "Soil Type" in line or "Watering Needs" in line or "Pests and Diseases" in line:
-            formatted_context += f"- {line}\n"
-    return formatted_context
+# Function to generate an answer using the GPT model
+def generate_answer(question, context):
+    input_text = f"Question: {question}\nContext: {context}\nAnswer:"
+    gpt_result = gpt_pipeline(input_text, max_length=100, num_return_sequences=1)
+    return gpt_result[0]['generated_text'].split("Answer:")[1].strip()
 
 # Ask a Question Page
 st.header("Ask a Question")
 user_question = st.text_input("Enter your question:")
 if st.button("Ask"):
     if sentence_model:
+        # Search the database for relevant context
         context = search_database(user_question)
         if context.strip():
-            formatted_context = format_context(context)
-            st.write("**Context Provided to Model:**", formatted_context)
-            if qa_pipeline:
-                qa_result = qa_pipeline(question=user_question, context=formatted_context)
-                answer = post_process_answer(qa_result['answer'], user_question)
+            st.write("**Context Provided to Model:**", context)
+            if gpt_pipeline:
+                # Generate the answer using the GPT model
+                answer = generate_answer(user_question, context)
                 st.write("**Answer:**", answer)
             else:
-                st.error("QA pipeline is not initialized.")
+                st.error("GPT pipeline is not initialized.")
         else:
             st.write("No relevant information found in the database.")
     else:
