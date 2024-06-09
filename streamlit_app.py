@@ -14,7 +14,7 @@ model, tokenizer = load_model()
 
 # Function to generate text based on input question and context
 def generate_paragraph(question, context):
-    input_text = f"question: {question} context: {context}"
+    input_text = f"Generate a detailed guide based on the following question and context.\n\nQuestion: {question}\nContext: {context}"
     inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
     outputs = model.generate(inputs, max_length=512, num_beams=4, early_stopping=True)
     answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
@@ -22,6 +22,7 @@ def generate_paragraph(question, context):
 
 # Function to format the output into a well-written paragraph
 def format_output(output):
+    # Split the text into sentences and capitalize the first letter of each sentence.
     sentences = output.split('. ')
     formatted_output = '. '.join(sentence.capitalize() for sentence in sentences)
     return formatted_output
@@ -32,12 +33,12 @@ st.write("Enter your question and context about growing tomatoes to generate a d
 
 question = st.text_input("Question", value="How to grow tomato?")
 context = st.text_area("Context", value="""
-    Crop Name: Tomato
-    Planting Season: Spring
-    Harvest Time: Summer
-    Soil Type: Well-drained, fertile soil
-    Watering Needs: Regular watering, keep soil moist but not waterlogged
-    Pests and Diseases: Aphids, Blight, Tomato Hornworm
+Crop Name: Tomato
+Planting Season: Spring
+Harvest Time: Summer
+Soil Type: Well-drained, fertile soil
+Watering Needs: Regular watering, keep soil moist but not waterlogged
+Pests and Diseases: Aphids, Blight, Tomato Hornworm
 """)
 
 if st.button("Generate Guide"):
