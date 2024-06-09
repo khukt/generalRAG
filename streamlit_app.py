@@ -73,7 +73,8 @@ def search_database(sentence_model, data, question):
 
 # Format context for summarization
 def format_context(context):
-    return f"Here is the information about growing tomatoes:\n{context.replace('\n', '. ').replace('  ', ' ')}"
+    return f"""Here is the information about growing tomatoes:
+               {context.replace('\n', '. ').replace('  ', ' ')}"""
 
 # Summarize context using the summarization model
 def summarize_context(summarization_pipeline, context):
