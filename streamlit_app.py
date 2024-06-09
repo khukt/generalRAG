@@ -1,6 +1,5 @@
 import streamlit as st
 from transformers import T5ForConditionalGeneration, T5Tokenizer
-import json
 
 # Cache the model and tokenizer to optimize memory usage
 @st.cache_resource
@@ -13,22 +12,15 @@ def load_model():
 model, tokenizer = load_model()
 
 # Function to generate text based on input question and context
-def generate_paragraph(crop_name, question, context):
+def generate_paragraph(question, context):
     input_text = (
-        f"Please provide a detailed, step-by-step guide on how to grow {crop_name.lower()} based on the following question and context.\n\n"
+        f"Please provide a detailed, step-by-step guide on how to grow the specified crop based on the following question and context.\n\n"
         f"Question: {question}\n\n"
         f"Context: {context}\n\n"
-        f"Include the following details in a numbered list:\n"
-        f"1. Planting season\n"
-        f"2. Soil preparation\n"
-        f"3. Planting instructions\n"
-        f"4. Watering schedule\n"
-        f"5. Pest control\n"
-        f"6. Harvesting tips\n\n"
-        f"Provide specific and detailed instructions for each step."
+        f"Steps:"
     )
     inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
-    outputs = model.generate(inputs, max_length=600, num_beams=5, no_repeat_ngram_size=2, early_stopping=True)
+    outputs = model.generate(inputs, max_length=300, num_beams=5, no_repeat_ngram_size=2, early_stopping=True)
     answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
     return format_output(answer)
 
@@ -40,45 +32,69 @@ def format_output(output):
         formatted_output += '.'
     return formatted_output
 
-# Function to load context from a JSON file
-@st.cache_resource
-def load_context_from_json(file_path):
-    with open(file_path, 'r') as file:
-        data = json.load(file)
-    return data
-
-# Load the JSON data (assuming the file is named 'crop_details.json')
-context_data = load_context_from_json('crop_details.json')
-
-# Function to get context text from the JSON data
-def get_context_text(crop_name, context_data):
-    crop = context_data.get(crop_name, {})
-    if not crop:
-        return "Crop details not found."
-    context = (
-        f"Crop Name: {crop.get('name', 'N/A')}\n"
-        f"Planting Season: {crop.get('planting_season', 'N/A')}\n"
-        f"Harvest Time: {crop.get('harvest_time', 'N/A')}\n"
-        f"Soil Type: {crop.get('soil_type', 'N/A')}\n"
-        f"Watering Needs: {crop.get('watering_needs', 'N/A')}\n"
-        f"Pests and Diseases: {', '.join(crop.get('pests_diseases', []))}\n"
-    )
-    return context
-
 # Streamlit UI
 st.title("Crop Growing Guide Generator")
-st.write("Enter your question and select a crop to generate a detailed guide.")
+st.write("Select a crop and enter your question and context to generate a detailed guide.")
 
-question = st.text_input("Question", value="How to grow this crop?")
-crop_name = st.selectbox("Select Crop", options=list(context_data.keys()), index=0)
-context = get_context_text(crop_name, context_data)
+crop_choice = st.selectbox("Select Crop", ["Tomato", "Corn"])
+
+if crop_choice == "Tomato":
+    context = """
+        Crop Name: Tomato
+        Planting Season: Spring
+        Harvest Time: Summer
+        Soil Type: Well-drained, fertile soil
+        Watering Needs: Regular watering, keep soil moist but not waterlogged
+        Pests and Diseases: Aphids, Blight, Tomato Hornworm
+    """
+else:
+    context = """
+        Crop Name: Corn
+        Planting Season: Late Spring
+        Harvest Time: Late Summer to Early Fall
+        Soil Type: Well-drained, loamy soil
+        Watering Needs: Moderate watering, keep soil moist especially during tasseling and ear development
+        Pests and Diseases: Corn Earworm, Rootworm, Corn Smut
+    """
+
+question = st.text_input("Question", value=f"How to grow {crop_choice.lower()}?")
+context = st.text_area("Context", value=context)
 
 if st.button("Generate Guide"):
     with st.spinner("Generating..."):
-        guide = generate_paragraph(crop_name, question, context)
+        guide = generate_paragraph(question, context)
     st.subheader("Generated Guide")
     st.write(guide)
 
-# Display the selected crop context
-st.subheader("Crop Context")
-st.write(context)
+# Cache resource decorator for efficient reloading
+@st.cache_resource
+def get_crop_details(crop_name):
+    if crop_name == "Tomato":
+        return {
+            'name': 'Tomato',
+            'planting_season': 'Spring',
+            'harvest_time': 'Summer',
+            'soil_type': 'Well-drained, fertile soil',
+            'watering_needs': 'Regular watering, keep soil moist but not waterlogged',
+            'pests_diseases': ['Aphids', 'Blight', 'Tomato Hornworm']
+        }
+    else:
+        return {
+            'name': 'Corn',
+            'planting_season': 'Late Spring',
+            'harvest_time': 'Late Summer to Early Fall',
+            'soil_type': 'Well-drained, loamy soil',
+            'watering_needs': 'Moderate watering, keep soil moist especially during tasseling and ear development',
+            'pests_diseases': ['Corn Earworm', 'Rootworm', 'Corn Smut']
+        }
+
+crop_details = get_crop_details(crop_choice)
+crop_text = (
+    f"Crop Name: {crop_details['name']}\n"
+    f"Planting Season: {crop_details['planting_season']}\n"
+    f"Harvest Time: {crop_details['harvest_time']}\n"
+    f"Soil Type: {crop_details['soil_type']}\n"
+    f"Watering Needs: {crop_details['watering_needs']}\n"
+    f"Pests and Diseases: {', '.join(crop_details['pests_diseases'])}\n"
+)
+st.write(crop_text)
