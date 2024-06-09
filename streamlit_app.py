@@ -9,25 +9,19 @@ def load_model_and_tokenizer():
 
 tokenizer, model = load_model_and_tokenizer()
 
-def generate_explanation(prompt):
+def generate_explanation(prompt, max_length, temperature, top_k, top_p, repetition_penalty):
     inputs = tokenizer.encode(prompt, return_tensors="pt")
-    outputs = model.generate(inputs, max_length=150, num_return_sequences=1)
+    outputs = model.generate(
+        inputs,
+        max_length=max_length,
+        temperature=temperature,
+        top_k=top_k,
+        top_p=top_p,
+        repetition_penalty=repetition_penalty,
+        num_return_sequences=1
+    )
     explanation = tokenizer.decode(outputs[0], skip_special_tokens=True)
     return explanation
-
-def context_to_sentence(context):
-    # Split the context into key-value pairs
-    context_dict = dict(item.split(": ") for item in context.split("\n") if ": " in item)
-    
-    # Create a coherent sentence from the context
-    sentence = (
-        f"To grow {context_dict.get('Crop Name', 'tomatoes')}, you should plant them in the {context_dict.get('Planting Season', 'spring')}."
-        f" The harvest time is around {context_dict.get('Harvest Time', '75 days')}."
-        f" They thrive best in {context_dict.get('Soil Type', 'loamy')} soil."
-        f" Watering needs are approximately {context_dict.get('Watering Needs', '1 inch per week')}."
-        f" Be aware of pests and diseases such as {context_dict.get('Pests and Diseases', 'aphids and blight')}."
-    )
-    return sentence
 
 st.title("Tomato Growing Guide")
 
@@ -43,9 +37,14 @@ context = st.text_area("Context provided to model:",
                        "Watering Needs: 1 inch per week\n"
                        "Pests and Diseases: Aphids, Blight")
 
+# Control variables
+max_length = st.slider("Max Length", 50, 300, 150)
+temperature = st.slider("Temperature", 0.1, 1.0, 0.7)
+top_k = st.slider("Top K", 0, 100, 50)
+top_p = st.slider("Top P", 0.0, 1.0, 0.9)
+repetition_penalty = st.slider("Repetition Penalty", 1.0, 2.0, 1.2)
+
 if st.button("Generate Explanation"):
-    context_sentence = context_to_sentence(context)
-    prompt = f"Question: {question}\nContext: {context_sentence}\nExplanation:"
-    explanation = generate_explanation(prompt)
-    st.write(f"**Context Sentence:** {context_sentence}")
-    st.write(f"**Explanation:** {explanation}")
+    prompt = f"Question: {question}\nContext: {context}\nExplanation:"
+    explanation = generate_explanation(prompt, max_length, temperature, top_k, top_p, repetition_penalty)
+    st.write(explanation)
