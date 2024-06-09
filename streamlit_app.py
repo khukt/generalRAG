@@ -18,7 +18,7 @@ def generate_paragraph(crop_name, question, context):
         f"Please provide a detailed, step-by-step guide on how to grow {crop_name.lower()} based on the following question and context.\n\n"
         f"Question: {question}\n\n"
         f"Context: {context}\n\n"
-        f"Include the following details in a step-by-step manner: \n"
+        f"Include the following details in a numbered list: \n"
         f"1. Planting season\n"
         f"2. Soil preparation\n"
         f"3. Planting instructions\n"
