@@ -45,11 +45,18 @@ def search_database(question):
     top_similarities = similarities[top_indices]
     relevant_context = "\n\n".join([context_entries[idx][0] for idx in top_indices])
 
-    # Debugging information
-    st.write("Cosine Similarity Scores:", similarities)
-    for idx, sim in zip(top_indices, top_similarities):
-        st.write(f"Entry Index: {idx}, Crop Name: {context_entries[idx][1]}, Cosine Similarity Score: {sim}")
+    # Explainable AI Information
+    explainable_info = "### Explainable AI Information:\n\n"
+    explainable_info += f"Your question: **{question}**\n\n"
+    explainable_info += "The top 3 most relevant entries from the database were selected based on cosine similarity scores:\n\n"
 
+    for idx, sim in zip(top_indices, top_similarities):
+        explainable_info += f"- **Entry Index**: {idx}\n"
+        explainable_info += f"  - **Crop Name**: {context_entries[idx][1]}\n"
+        explainable_info += f"  - **Cosine Similarity Score**: {sim:.4f}\n"
+        explainable_info += f"  - **Details**: {context_entries[idx][0]}\n\n"
+
+    st.markdown(explainable_info)
     st.write("Relevant Context Generated:", relevant_context)
 
     return relevant_context
