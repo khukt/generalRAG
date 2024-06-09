@@ -13,9 +13,9 @@ def load_model():
 model, tokenizer = load_model()
 
 # Function to generate text based on input question and context
-def generate_paragraph(question, context):
+def generate_paragraph(crop_name, question, context):
     input_text = (
-        f"Please provide a detailed, step-by-step guide on how to grow tomatoes based on the following question and context.\n\n"
+        f"Please provide a detailed, step-by-step guide on how to grow {crop_name.lower()} based on the following question and context.\n\n"
         f"Question: {question}\n\n"
         f"Context: {context}\n\n"
         f"Steps:"
@@ -59,16 +59,16 @@ def get_context_text(crop_name, context_data):
     return context
 
 # Streamlit UI
-st.title("Tomato Growing Guide Generator")
+st.title("Crop Growing Guide Generator")
 st.write("Enter your question and select a crop to generate a detailed guide.")
 
-question = st.text_input("Question", value="How to grow tomatoes?")
+question = st.text_input("Question", value="How to grow this crop?")
 crop_name = st.selectbox("Select Crop", options=list(context_data.keys()), index=0)
 context = get_context_text(crop_name, context_data)
 
 if st.button("Generate Guide"):
     with st.spinner("Generating..."):
-        guide = generate_paragraph(question, context)
+        guide = generate_paragraph(crop_name, question, context)
     st.subheader("Generated Guide")
     st.write(guide)
 
