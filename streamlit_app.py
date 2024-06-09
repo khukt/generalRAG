@@ -67,20 +67,26 @@ if option == "Ask a Question":
     if st.button("Ask"):
         # Determine relevant context
         relevant_context = ""
-        
+
         # Check if the question is about a specific crop
-        crop_keywords = ["grow", "plant", "harvest", "water", "soil"]
-        if any(keyword in user_question.lower() for keyword in crop_keywords):
+        if "grow" in user_question.lower() or "plant" in user_question.lower():
             for crop in data['crops']:
                 if crop['name'].lower() in user_question.lower():
-                    relevant_context += " ".join([f"{key}: {value}" for key, value in crop.items()]) + " "
+                    relevant_context += f"Crop Name: {crop['name']}\n"
+                    relevant_context += f"Planting Season: {crop['planting_season']}\n"
+                    relevant_context += f"Harvest Time: {crop['harvest_time']}\n"
+                    relevant_context += f"Soil Type: {crop['soil_type']}\n"
+                    relevant_context += f"Watering Needs: {crop['watering_needs']}\n"
+                    relevant_context += f"Pests and Diseases: {', '.join(crop['pests_diseases'])}\n"
         
         # Check if the question is about pests or diseases
-        pest_keywords = ["pest", "disease", "treat", "symptom", "affect"]
-        if any(keyword in user_question.lower() for keyword in pest_keywords):
+        if "pest" in user_question.lower() or "disease" in user_question.lower():
             for pest in data['pests_diseases']:
                 if pest['name'].lower() in user_question.lower():
-                    relevant_context += " ".join([f"{key}: {value}" for key, value in pest.items()]) + " "
+                    relevant_context += f"Pest/Disease Name: {pest['name']}\n"
+                    relevant_context += f"Affected Crops: {', '.join(pest['affected_crops'])}\n"
+                    relevant_context += f"Symptoms: {pest['symptoms']}\n"
+                    relevant_context += f"Treatment: {pest['treatment']}\n"
 
         if relevant_context:
             qa_result = qa_pipeline(question=user_question, context=relevant_context)
