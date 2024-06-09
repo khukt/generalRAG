@@ -22,10 +22,16 @@ def generate_paragraph(question, context):
 
 # Function to format the output into a well-written paragraph
 def format_output(output):
-    # Split the text into sentences and capitalize the first letter of each sentence.
     sentences = output.split('. ')
     formatted_output = '. '.join(sentence.capitalize() for sentence in sentences)
     return formatted_output
+
+# The expected output for comparison
+expected_output = ("Tomatoes are best planted in the spring when the soil begins to warm up. "
+                   "They thrive in well-drained, fertile soil, which should be kept consistently moist but not waterlogged through regular watering. "
+                   "Expect to harvest your tomatoes in the summer when they reach full maturity. "
+                   "Watch out for common pests and diseases such as aphids, blight, and tomato hornworm. "
+                   "Taking preventive measures and regular monitoring can help maintain healthy plants and ensure a successful harvest.")
 
 # Streamlit UI
 st.title("Tomato Growing Guide Generator")
@@ -44,29 +50,8 @@ Pests and Diseases: Aphids, Blight, Tomato Hornworm
 if st.button("Generate Guide"):
     with st.spinner("Generating..."):
         guide = generate_paragraph(question, context)
+        result = guide == expected_output
     st.subheader("Generated Guide")
     st.write(guide)
-
-# Cache resource decorator for efficient reloading
-@st.cache_resource
-def get_crop_details():
-    crop = {
-        'name': 'Tomato',
-        'planting_season': 'Spring',
-        'harvest_time': 'Summer',
-        'soil_type': 'Well-drained, fertile soil',
-        'watering_needs': 'Regular watering, keep soil moist but not waterlogged',
-        'pests_diseases': ['Aphids', 'Blight', 'Tomato Hornworm']
-    }
-    return crop
-
-crop = get_crop_details()
-crop_text = (
-    f"Crop Name: {crop['name']}\n"
-    f"Planting Season: {crop['planting_season']}\n"
-    f"Harvest Time: {crop['harvest_time']}\n"
-    f"Soil Type: {crop['soil_type']}\n"
-    f"Watering Needs: {crop['watering_needs']}\n"
-    f"Pests and Diseases: {', '.join(crop['pests_diseases'])}\n"
-)
-st.write(crop_text)
+    st.subheader("Does the generated guide match the expected output?")
+    st.write(result)
