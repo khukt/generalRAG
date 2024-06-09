@@ -14,9 +14,9 @@ tokenizer, model = load_model_and_tokenizer(model_name)
 
 def generate_explanation(question, context):
     input_text = (
-        f"Question: {question}\n"
+        f"Explain how to grow tomatoes.\n"
         f"Context: {context}\n\n"
-        f"Detailed Explanation on how to grow tomatoes:"
+        f"Question: {question}"
     )
     inputs = tokenizer.encode(input_text, return_tensors="pt")
     outputs = model.generate(inputs, max_length=300, num_return_sequences=1, early_stopping=True)
