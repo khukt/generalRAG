@@ -32,13 +32,14 @@ def search_database(sentence_model, data, question):
 
     for crop in data.get('crops', []):
         crop_text = (
-            f"Crop Name: {crop['name']}\n"
-            f"Planting Season: {crop['planting_season']}\n"
-            f"Harvest Time: {crop['harvest_time']}\n"
-            f"Soil Type: {crop['soil_type']}\n"
-            f"Watering Needs: {crop['watering_needs']}\n"
-            f"Pests and Diseases: {', '.join(crop['pests_diseases'])}\n"
-        )
+            "Crop Name: {}\n"
+            "Planting Season: {}\n"
+            "Harvest Time: {}\n"
+            "Soil Type: {}\n"
+            "Watering Needs: {}\n"
+            "Pests and Diseases: {}\n"
+        ).format(crop['name'], crop['planting_season'], crop['harvest_time'], crop['soil_type'],
+                 crop['watering_needs'], ', '.join(crop['pests_diseases']))
         context_entries.append((crop_text, crop['name']))
 
     # Calculate similarities
@@ -53,18 +54,18 @@ def search_database(sentence_model, data, question):
 
     # Explainable AI Information
     explainable_info = (
-        f"### Explainable AI Information:\n\n"
-        f"Your question: **{question}**\n\n"
-        f"The top 3 most relevant entries from the database were selected based on cosine similarity scores:\n\n"
-    )
+        "### Explainable AI Information:\n\n"
+        "Your question: **{}**\n\n"
+        "The top 3 most relevant entries from the database were selected based on cosine similarity scores:\n\n"
+    ).format(question)
 
     for idx, sim in zip(top_indices, top_similarities):
         explainable_info += (
-            f"- **Entry Index**: {idx}\n"
-            f"  - **Crop Name**: {context_entries[idx][1]}\n"
-            f"  - **Cosine Similarity Score**: {sim:.4f}\n"
-            f"  - **Details**: {context_entries[idx][0]}\n\n"
-        )
+            "- **Entry Index**: {}\n"
+            "  - **Crop Name**: {}\n"
+            "  - **Cosine Similarity Score**: {:.4f}\n"
+            "  - **Details**: {}\n\n"
+        ).format(idx, context_entries[idx][1], sim, context_entries[idx][0])
 
     st.markdown(explainable_info)
     st.write("Relevant Context Generated:", relevant_context)
@@ -73,8 +74,9 @@ def search_database(sentence_model, data, question):
 
 # Format context for summarization
 def format_context(context):
-    return f"""Here is the information about growing tomatoes:
-               {context.replace('\n', '. ').replace('  ', ' ')}"""
+    formatted_context = "Here is the information about growing tomatoes:\n"
+    formatted_context += context.replace("\n", ". ").replace("  ", " ")
+    return formatted_context
 
 # Summarize context using the summarization model
 def summarize_context(summarization_pipeline, context):
