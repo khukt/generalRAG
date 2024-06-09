@@ -13,9 +13,9 @@ except Exception as e:
     st.error(f"Error loading data: {e}")
     data = {}
 
-# Initialize the summarization pipeline (using t5-small)
+# Initialize the summarization pipeline (using facebook/bart-large-cnn)
 try:
-    summarization_pipeline = pipeline("summarization", model="t5-small")
+    summarization_pipeline = pipeline("summarization", model="facebook/bart-large-cnn")
 except Exception as e:
     st.error(f"Error loading summarization model: {e}")
     summarization_pipeline = None
