@@ -21,7 +21,7 @@ def generate_explanation(prompt, 150, temperature, top_k, top_p, repetition_pena
     
     outputs = model.generate(
         inputs,
-        max_length=max_length,
+        max_length=150,
         temperature=temperature,
         top_k=top_k,
         top_p=top_p,
