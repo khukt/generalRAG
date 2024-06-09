@@ -1,16 +1,20 @@
 import streamlit as st
 import json
+from transformers import pipeline
 
 # Load the JSON database
 with open('agriculture_data.json') as f:
     data = json.load(f)
+
+# Initialize the transformer pipeline for question answering
+qa_pipeline = pipeline("question-answering", model="distilbert-base-cased-distilled-squad")
 
 # Title of the app
 st.title("Agriculture Information Database")
 
 # Sidebar for navigation
 st.sidebar.title("Navigation")
-option = st.sidebar.selectbox("Choose a query type", ["Crop Information", "Pest and Disease Management"])
+option = st.sidebar.selectbox("Choose a query type", ["Crop Information", "Pest and Disease Management", "Ask a Question"])
 
 # Function to get crop information
 def get_crop_info(crop_name):
@@ -55,6 +59,16 @@ if option == "Pest and Disease Management":
             st.write(f"**Treatment:** {pest_disease_info['treatment']}")
         else:
             st.error("Pest or disease not found!")
+
+# Ask a Question Page
+if option == "Ask a Question":
+    st.header("Ask a Question")
+    user_question = st.text_input("Enter your question:")
+    if st.button("Ask"):
+        # Combine all relevant text data for the model's context
+        context = " ".join([entry['answer'] for entry in data['questions']])
+        qa_result = qa_pipeline(question=user_question, context=context)
+        st.write(f"**Answer:** {qa_result['answer']}")
 
 if __name__ == '__main__':
     st.write("Welcome to the Agriculture Information Database!")
