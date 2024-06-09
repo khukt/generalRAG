@@ -1,0 +1,60 @@
+import streamlit as st
+import json
+
+# Load the JSON database
+with open('agriculture_data.json') as f:
+    data = json.load(f)
+
+# Title of the app
+st.title("Agriculture Information Database")
+
+# Sidebar for navigation
+st.sidebar.title("Navigation")
+option = st.sidebar.selectbox("Choose a query type", ["Crop Information", "Pest and Disease Management"])
+
+# Function to get crop information
+def get_crop_info(crop_name):
+    for crop in data['crops']:
+        if crop['name'].lower() == crop_name.lower():
+            return crop
+    return None
+
+# Function to get pest and disease information
+def get_pest_disease_info(name):
+    for pest_disease in data['pests_diseases']:
+        if pest_disease['name'].lower() == name.lower():
+            return pest_disease
+    return None
+
+# Crop Information Page
+if option == "Crop Information":
+    st.header("Crop Information")
+    crop_name = st.text_input("Enter the crop name:")
+    if st.button("Search"):
+        crop_info = get_crop_info(crop_name)
+        if crop_info:
+            st.write(f"**Name:** {crop_info['name']}")
+            st.write(f"**Planting Season:** {crop_info['planting_season']}")
+            st.write(f"**Harvest Time:** {crop_info['harvest_time']}")
+            st.write(f"**Soil Type:** {crop_info['soil_type']}")
+            st.write(f"**Watering Needs:** {crop_info['watering_needs']}")
+            st.write(f"**Pests and Diseases:** {', '.join(crop_info['pests_diseases'])}")
+        else:
+            st.error("Crop not found!")
+
+# Pest and Disease Management Page
+if option == "Pest and Disease Management":
+    st.header("Pest and Disease Management")
+    pest_disease_name = st.text_input("Enter the pest or disease name:")
+    if st.button("Search"):
+        pest_disease_info = get_pest_disease_info(pest_disease_name)
+        if pest_disease_info:
+            st.write(f"**Name:** {pest_disease_info['name']}")
+            st.write(f"**Affected Crops:** {', '.join(pest_disease_info['affected_crops'])}")
+            st.write(f"**Symptoms:** {pest_disease_info['symptoms']}")
+            st.write(f"**Treatment:** {pest_disease_info['treatment']}")
+        else:
+            st.error("Pest or disease not found!")
+
+if __name__ == '__main__':
+    st.write("Welcome to the Agriculture Information Database!")
