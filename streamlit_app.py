@@ -49,13 +49,10 @@ def search_database(question):
     return relevant_context
 
 # Function to post-process the model's answer
-def post_process_answer(answers, question):
-    if not answers or all(len(answer['answer'].strip()) < 10 for answer in answers):
+def post_process_answer(answer, question):
+    if not answer.strip() or answer.strip().lower() == "soil":
         return "I couldn't find the specific information you were looking for. Please try rephrasing your question or provide more details."
-
-    # Combine answers into a longer, more comprehensive response
-    combined_answer = " ".join(answer['answer'].strip() for answer in answers if len(answer['answer'].strip()) > 10)
-    return f"Based on your question about '{question}', here is the information:\n\n{combined_answer}"
+    return f"Based on your question about '{question}', here is the information:\n\n{answer.strip()}"
 
 # Function to format context for better readability
 def format_context(context):
@@ -104,17 +101,13 @@ if option == "Ask a Question":
     user_question = st.text_input("Enter your question:")
     if st.button("Ask"):
         context = search_database(user_question)
-        formatted_context = format_context(context)
-        if formatted_context.strip():
+        if context.strip():
+            formatted_context = format_context(context)
+            st.write("**Context Provided to Model:**", formatted_context)  # Debugging line
             if qa_pipeline:
-                # Split the formatted context into smaller chunks for better processing
-                context_chunks = [formatted_context[i:i+500] for i in range(0, len(formatted_context), 500)]
-                answers = []
-                for chunk in context_chunks:
-                    qa_result = qa_pipeline(question=user_question, context=chunk)
-                    st.write("QA Pipeline result: ", qa_result)  # Debugging line
-                    answers.append(qa_result)
-                answer = post_process_answer(answers, user_question)
+                qa_result = qa_pipeline(question=user_question, context=formatted_context)
+                st.write("**QA Pipeline result:**", qa_result)  # Debugging line
+                answer = post_process_answer(qa_result['answer'], user_question)
                 st.write(f"**Answer:** {answer}")
             else:
                 st.error("QA pipeline is not initialized.")
