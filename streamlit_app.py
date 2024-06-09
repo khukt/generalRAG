@@ -14,9 +14,9 @@ except Exception as e:
     st.error(f"Error loading data: {e}")
     data = {}
 
-# Initialize the summarization pipeline (using google/pegasus-xsum)
+# Initialize the summarization pipeline (using t5-small)
 try:
-    summarization_pipeline = pipeline("summarization", model="google/pegasus-xsum")
+    summarization_pipeline = pipeline("summarization", model="t5-small")
     st.write("Summarization model loaded successfully.")
 except Exception as e:
     st.error(f"Error loading summarization model: {e}")
