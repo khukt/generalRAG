@@ -38,5 +38,7 @@ context = st.text_area("Context provided to model:",
                        "Pests and Diseases: Aphids, Blight")
 
 if st.button("Generate Explanation"):
+    st.write("Generating explanation...")
     explanation = generate_explanation(question, context)
+    st.write("Explanation generated.")
     st.write(explanation)
