@@ -46,7 +46,7 @@ def search_database(question):
 
     # Debugging information
     st.write("Cosine Similarity Scores:", similarities)
-    st.write("Top 3 Similar Entries' Indices:", top_indices)
+    st.write("Top 3 Similar Entries' Indices:", top_indices[0])
     st.write("Relevant Context Generated:", relevant_context)
 
     return relevant_context
