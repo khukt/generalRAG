@@ -75,8 +75,7 @@ def search_database(sentence_model, data, question):
 # Format context for summarization
 def format_context(context):
     formatted_context = (
-        "The following information is about growing tomatoes. "
-        "Crop Name: Tomato. "
+        "The following information is relevant to your query:\n"
         "{}"
     ).format(context.replace('\n', '. ').replace('  ', ' '))
     return formatted_context
