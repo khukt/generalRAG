@@ -1,13 +1,16 @@
 import streamlit as st
 import json
-from transformers import pipeline
+from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM
 
 # Load the JSON database
 with open('agriculture_data.json') as f:
     data = json.load(f)
 
-# Initialize the transformer pipeline for question answering
-qa_pipeline = pipeline("question-answering", model="distilbert-base-cased-distilled-squad")
+# Initialize the text generation model and tokenizer
+model_name = "distilgpt2"
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+model = AutoModelForCausalLM.from_pretrained(model_name)
+text_generation_pipeline = pipeline("text-generation", model=model, tokenizer=tokenizer)
 
 # Title of the app
 st.title("Agriculture Information Database")
@@ -107,9 +110,10 @@ if option == "Ask a Question":
     if st.button("Ask"):
         context = generate_context(user_question)
         if context:
-            qa_result = qa_pipeline(question=user_question, context=context)
-            st.write(f"**Answer:** {qa_result}")
-            answer = post_process_answer(qa_result['answer'])
+            prompt = f"Question: {user_question}\nContext: {context}\nAnswer:"
+            generated_answers = text_generation_pipeline(prompt, max_length=200, num_return_sequences=1)
+            generated_answer = generated_answers[0]['generated_text']
+            answer = post_process_answer(generated_answer.replace(prompt, "").strip())
             st.write(f"**Answer:** {answer}")
         else:
             st.write("No relevant information found in the database.")
