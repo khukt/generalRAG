@@ -5,6 +5,12 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 def load_model_and_tokenizer():
     tokenizer = AutoTokenizer.from_pretrained("distilgpt2")
     model = AutoModelForCausalLM.from_pretrained("distilgpt2")
+    
+    # Add a padding token if not already present
+    if tokenizer.pad_token is None:
+        tokenizer.add_special_tokens({'pad_token': '[PAD]'})
+        model.resize_token_embeddings(len(tokenizer))
+    
     return tokenizer, model
 
 tokenizer, model = load_model_and_tokenizer()
@@ -22,7 +28,7 @@ def generate_explanation(prompt, max_length, temperature, top_k, top_p, repetiti
         repetition_penalty=repetition_penalty,
         num_return_sequences=1,
         attention_mask=attention_mask,
-        pad_token_id=tokenizer.eos_token_id
+        pad_token_id=tokenizer.pad_token_id
     )
     explanation = tokenizer.decode(outputs[0], skip_special_tokens=True)
     return explanation
