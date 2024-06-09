@@ -77,7 +77,7 @@ def search_database(question):
 # Function to summarize context using the GPT model
 def summarize_context(context):
     input_text = f"Summarize the following context:\n{context}\nSummary:"
-    gpt_result = gpt_pipeline(input_text, max_length=100, num_return_sequences=1, truncation=True)
+    gpt_result = gpt_pipeline(input_text, max_length=150, num_return_sequences=1, truncation=True)
     generated_text = gpt_result[0]['generated_text']
     summary_start = generated_text.find("Summary:") + len("Summary:")
     return generated_text[summary_start:].strip()
@@ -85,11 +85,11 @@ def summarize_context(context):
 # Function to generate an answer using the GPT model
 def generate_answer(question, context):
     summarized_context = summarize_context(context)
-    input_text = f"Question: {question}\nContext: {summarized_context}\nAnswer:"
-    gpt_result = gpt_pipeline(input_text, max_length=100, num_return_sequences=1, truncation=True)
+    input_text = f"Based on the context below, provide detailed steps on how to grow tomatoes.\n\nContext:\n{summarized_context}\n\nSteps to grow tomatoes:"
+    gpt_result = gpt_pipeline(input_text, max_length=200, num_return_sequences=1, truncation=True)
     generated_text = gpt_result[0]['generated_text']
-    answer_start = generated_text.find("Answer:") + len("Answer:")
-    return generated_text[answer_start:].strip()
+    steps_start = generated_text.find("Steps to grow tomatoes:") + len("Steps to grow tomatoes:")
+    return generated_text[steps_start:].strip()
 
 # Ask a Question Page
 st.header("Ask a Question")
