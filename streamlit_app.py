@@ -14,9 +14,9 @@ except Exception as e:
     st.error(f"Error loading data: {e}")
     data = {}
 
-# Initialize the summarization pipeline (using t5-small)
+# Initialize the summarization pipeline (using distilbart-cnn-12-6)
 try:
-    summarization_pipeline = pipeline("summarization", model="t5-small")
+    summarization_pipeline = pipeline("summarization", model="sshleifer/distilbart-cnn-12-6")
     st.write("Summarization model loaded successfully.")
 except Exception as e:
     st.error(f"Error loading summarization model: {e}")
