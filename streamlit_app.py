@@ -65,10 +65,11 @@ t5_model, t5_tokenizer, sbert_model = load_models()
 # Function to generate text based on input question and context
 def generate_paragraph(question, context):
     input_text = (
-        f"Please provide a detailed, step-by-step guide on how to grow tomatoes based on the following question and context.\n\n"
+        f"Please provide a comprehensive, detailed, and step-by-step guide on how to grow tomatoes. "
+        f"Include all necessary details, tips, and best practices based on the following question and context.\n\n"
         f"Question: {question}\n\n"
         f"Context: {context}\n\n"
-        f"Steps:"
+        f"Guide:"
     )
     inputs = t5_tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
     outputs = t5_model.generate(inputs, max_length=300, num_beams=5, no_repeat_ngram_size=2, early_stopping=True)
