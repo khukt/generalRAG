@@ -18,6 +18,7 @@ def generate_paragraph(crop_name, question, context):
         f"Please provide a detailed, step-by-step guide on how to grow {crop_name.lower()} based on the following question and context.\n\n"
         f"Question: {question}\n\n"
         f"Context: {context}\n\n"
+        f"Include details about planting season, soil type, watering needs, pest control, and any other relevant information.\n\n"
         f"Steps:"
     )
     inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
