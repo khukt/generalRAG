@@ -4,7 +4,7 @@ from transformers import T5ForConditionalGeneration, T5Tokenizer
 # Cache the model and tokenizer to optimize memory usage
 @st.cache_resource
 def load_model():
-    model_name = "flan-t5-base"
+    model_name = "google/flan-t5-base"
     model = T5ForConditionalGeneration.from_pretrained(model_name)
     tokenizer = T5Tokenizer.from_pretrained(model_name)
     return model, tokenizer
@@ -13,9 +13,9 @@ model, tokenizer = load_model()
 
 # Function to generate text based on input question and context
 def generate_paragraph(question, context):
-    input_text = f"Generate a detailed guide based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}"
+    input_text = f"Generate a detailed guide based on the following question and context.\nQuestion: {question}\nContext: {context}"
     inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
-    outputs = model.generate(inputs, max_length=200, num_beams=5, no_repeat_ngram_size=2, early_stopping=True)
+    outputs = model.generate(inputs, max_length=150, num_beams=5, no_repeat_ngram_size=2, early_stopping=True)
     answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
     return format_output(answer)
 
