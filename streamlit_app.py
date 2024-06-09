@@ -1,10 +1,15 @@
 import streamlit as st
 from transformers import T5Tokenizer, T5ForConditionalGeneration
 
-# Load T5 model and tokenizer
+@st.cache_resource
+def load_model_and_tokenizer(model_name):
+    tokenizer = T5Tokenizer.from_pretrained(model_name)
+    model = T5ForConditionalGeneration.from_pretrained(model_name)
+    return tokenizer, model
+
+# Load T5 model and tokenizer with caching
 model_name = "t5-base"
-tokenizer = T5Tokenizer.from_pretrained(model_name)
-model = T5ForConditionalGeneration.from_pretrained(model_name)
+tokenizer, model = load_model_and_tokenizer(model_name)
 
 def generate_explanation(question, context):
     input_text = (
