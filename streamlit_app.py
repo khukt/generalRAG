@@ -1,29 +1,31 @@
 import streamlit as st
-from transformers import GPT2LMHeadModel, GPT2Tokenizer
+from transformers import T5ForConditionalGeneration, T5Tokenizer
 import torch
 
 # Cache the model and tokenizer to optimize memory usage
 @st.cache_resource
 def load_model():
-    model_name = "distilgpt2"
-    model = GPT2LMHeadModel.from_pretrained(model_name)
-    tokenizer = GPT2Tokenizer.from_pretrained(model_name)
+    model_name = "t5-small"
+    model = T5ForConditionalGeneration.from_pretrained(model_name)
+    tokenizer = T5Tokenizer.from_pretrained(model_name)
     return model, tokenizer
 
 model, tokenizer = load_model()
 
 # Function to generate text based on input question and context
 def generate_paragraph(question, context):
-    input_text = f"Question: {question}\nContext: {context}\nAnswer:"
+    input_text = f"question: {question} context: {context}"
     inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
-    outputs = model.generate(inputs, max_length=150, num_beams=5, no_repeat_ngram_size=2, early_stopping=True)
+    outputs = model.generate(inputs, max_length=150, num_beams=4, early_stopping=True)
     answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
     return format_output(answer)
 
 # Function to format the output into a well-written paragraph
 def format_output(output):
     sentences = output.split('. ')
-    formatted_output = '. '.join(sentence.capitalize() for sentence in sentences)
+    formatted_output = '. '.join(sentence.capitalize() for sentence in sentences if sentence)
+    if not formatted_output.endswith('.'):
+        formatted_output += '.'
     return formatted_output
 
 # Streamlit UI
