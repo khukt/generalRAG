@@ -1,16 +1,13 @@
 import streamlit as st
 import json
-from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM
+from transformers import pipeline
 
 # Load the JSON database
 with open('agriculture_data.json') as f:
     data = json.load(f)
 
-# Initialize the text generation model and tokenizer
-model_name = "EleutherAI/gpt-neo-125M"  # Smaller variant suitable for use in products
-tokenizer = AutoTokenizer.from_pretrained(model_name)
-model = AutoModelForCausalLM.from_pretrained(model_name)
-text_generation_pipeline = pipeline("text-generation", model=model, tokenizer=tokenizer)
+# Initialize the transformer pipeline for question answering
+qa_pipeline = pipeline("question-answering", model="distilbert-base-cased-distilled-squad")
 
 # Title of the app
 st.title("Agriculture Information Database")
@@ -19,55 +16,31 @@ st.title("Agriculture Information Database")
 st.sidebar.title("Navigation")
 option = st.sidebar.selectbox("Choose a query type", ["Crop Information", "Pest and Disease Management", "Ask a Question"])
 
-# Function to get crop information
-def get_crop_info(crop_name):
-    for crop in data['crops']:
-        if crop['name'].lower() == crop_name.lower():
-            return crop
-    return None
+# Function to search relevant data from the database
+def search_database(question):
+    relevant_context = ""
 
-# Function to get pest and disease information
-def get_pest_disease_info(name):
-    for pest_disease in data['pests_diseases']:
-        if pest_disease['name'].lower() == name.lower():
-            return pest_disease
-    return None
-
-# Function to preprocess the question and generate context
-def generate_context(question):
-    context = ""
     question_lower = question.lower()
-    
-    # Determine relevant crop information
-    if "grow" in question_lower or "plant" in question_lower or "harvest" in question_lower:
-        for crop in data['crops']:
-            if crop['name'].lower() in question_lower:
-                context += f"How to grow {crop['name']}:\n"
-                context += f"Planting Season: {crop['planting_season']}\n"
-                context += f"Harvest Time: {crop['harvest_time']}\n"
-                context += f"Soil Type: {crop['soil_type']}\n"
-                context += f"Watering Needs: {crop['watering_needs']}\n"
-                context += f"Pests and Diseases: {', '.join(crop['pests_diseases'])}\n\n"
-    
-    # Determine relevant pest/disease information
-    if "pest" in question_lower or "disease" in question_lower or "treat" in question_lower or "symptom" in question_lower:
-        for pest in data['pests_diseases']:
-            if pest['name'].lower() in question_lower:
-                context += f"Information about {pest['name']}:\n"
-                context += f"Affected Crops: {', '.join(pest['affected_crops'])}\n"
-                context += f"Symptoms: {pest['symptoms']}\n"
-                context += f"Treatment: {pest['treatment']}\n\n"
-    
-    # Include more comprehensive information
+
+    # Search for relevant crop information
     for crop in data['crops']:
-        context += f"General information about growing {crop['name']}:\n"
-        context += f"Planting Season: {crop['planting_season']}\n"
-        context += f"Harvest Time: {crop['harvest_time']}\n"
-        context += f"Soil Type: {crop['soil_type']}\n"
-        context += f"Watering Needs: {crop['watering_needs']}\n"
-        context += f"Pests and Diseases: {', '.join(crop['pests_diseases'])}\n\n"
-    
-    return context
+        if any(keyword in question_lower for keyword in [crop['name'].lower(), "grow", "plant", "harvest", "water", "soil"]):
+            relevant_context += f"Crop Name: {crop['name']}\n"
+            relevant_context += f"Planting Season: {crop['planting_season']}\n"
+            relevant_context += f"Harvest Time: {crop['harvest_time']}\n"
+            relevant_context += f"Soil Type: {crop['soil_type']}\n"
+            relevant_context += f"Watering Needs: {crop['watering_needs']}\n"
+            relevant_context += f"Pests and Diseases: {', '.join(crop['pests_diseases'])}\n\n"
+
+    # Search for relevant pest/disease information
+    for pest in data['pests_diseases']:
+        if any(keyword in question_lower for keyword in [pest['name'].lower(), "pest", "disease", "treat", "symptom"]):
+            relevant_context += f"Pest/Disease Name: {pest['name']}\n"
+            relevant_context += f"Affected Crops: {', '.join(pest['affected_crops'])}\n"
+            relevant_context += f"Symptoms: {pest['symptoms']}\n"
+            relevant_context += f"Treatment: {pest['treatment']}\n\n"
+
+    return relevant_context
 
 # Function to post-process the model's answer
 def post_process_answer(answer):
@@ -108,12 +81,10 @@ if option == "Ask a Question":
     st.header("Ask a Question")
     user_question = st.text_input("Enter your question:")
     if st.button("Ask"):
-        context = generate_context(user_question)
+        context = search_database(user_question)
         if context:
-            prompt = f"Question: {user_question}\nContext: {context}\nAnswer:"
-            generated_answers = text_generation_pipeline(prompt, max_length=200, num_return_sequences=1)
-            generated_answer = generated_answers[0]['generated_text']
-            answer = post_process_answer(generated_answer.replace(prompt, "").strip())
+            qa_result = qa_pipeline(question=user_question, context=context)
+            answer = post_process_answer(qa_result['answer'])
             st.write(f"**Answer:** {answer}")
         else:
             st.write("No relevant information found in the database.")
