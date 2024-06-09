@@ -84,6 +84,7 @@ if st.button("Ask"):
         if context.strip():
             if qa_pipeline:
                 qa_result = qa_pipeline(question=user_question, context=context)
+                st.write("**QA Pipeline result:**", qa_result)  # Debugging line
                 answer = post_process_answer(qa_result['answer'], user_question)
                 st.write("**Answer:**", answer)
             else:
