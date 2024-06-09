@@ -79,15 +79,6 @@ def summarize_context(context):
     summarized = summarization_pipeline(context, max_length=100, min_length=30, do_sample=False)
     return summarized[0]['summary_text']
 
-# Function to generate an answer using the GPT model
-def generate_answer(question, context):
-    summarized_context = summarize_context(context)
-    input_text = f"Based on the context below, provide detailed and practical steps on how to grow tomatoes.\n\nContext:\n{summarized_context}\n\nSteps to grow tomatoes:"
-    gpt_result = gpt_pipeline(input_text, max_length=200, num_return_sequences=1, truncation=True)
-    generated_text = gpt_result[0]['generated_text']
-    steps_start = generated_text.find("Steps to grow tomatoes:") + len("Steps to grow tomatoes:")
-    return generated_text[steps_start:].strip()
-
 # Ask a Question Page
 st.header("Ask a Question")
 user_question = st.text_input("Enter your question:")
@@ -97,12 +88,12 @@ if st.button("Ask"):
         context = search_database(user_question)
         if context.strip():
             st.write("**Context Provided to Model:**", context)
-            if summarization_pipeline and gpt_pipeline:
-                # Generate the answer using the GPT model
-                answer = generate_answer(user_question, context)
+            if summarization_pipeline:
+                # Summarize the context using the summarization model
+                answer = summarize_context(context)
                 st.write("**Answer:**", answer)
             else:
-                st.error("Summarization or GPT pipeline is not initialized.")
+                st.error("Summarization pipeline is not initialized.")
         else:
             st.write("No relevant information found in the database.")
     else:
