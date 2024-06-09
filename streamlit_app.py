@@ -3,11 +3,19 @@ import json
 from transformers import pipeline
 
 # Load the JSON database
-with open('agriculture_data.json') as f:
-    data = json.load(f)
+try:
+    with open('agriculture_data.json') as f:
+        data = json.load(f)
+except Exception as e:
+    st.error(f"Error loading data: {e}")
+    data = {}
 
 # Initialize the transformer pipeline for question answering
-qa_pipeline = pipeline("question-answering", model="distilbert-base-cased-distilled-squad")
+try:
+    qa_pipeline = pipeline("question-answering", model="distilbert-base-cased-distilled-squad")
+except Exception as e:
+    st.error(f"Error loading transformer model: {e}")
+    qa_pipeline = None
 
 # Title of the app
 st.title("Agriculture Information Database")
@@ -18,7 +26,7 @@ option = st.sidebar.selectbox("Choose a query type", ["Crop Information", "Pest 
 
 # Function to get crop information
 def get_crop_info(crop_name):
-    for crop in data['crops']:
+    for crop in data.get('crops', []):
         if crop['name'].lower() == crop_name.lower():
             return crop
     return None
@@ -29,7 +37,7 @@ def search_database(question):
     question_lower = question.lower()
 
     # Search for relevant crop information
-    for crop in data['crops']:
+    for crop in data.get('crops', []):
         if crop['name'].lower() in question_lower or any(keyword in question_lower for keyword in ["grow", "plant", "harvest", "water", "soil"]):
             relevant_context += f"Crop Name: {crop['name']}\n"
             relevant_context += f"Planting Season: {crop['planting_season']}\n"
@@ -38,6 +46,7 @@ def search_database(question):
             relevant_context += f"Watering Needs: {crop['watering_needs']}\n"
             relevant_context += f"Pests and Diseases: {', '.join(crop['pests_diseases'])}\n\n"
 
+    st.write("Generated context: ", relevant_context)  # Debugging line
     return relevant_context
 
 # Function to post-process the model's answer
@@ -55,6 +64,7 @@ def format_context(context):
             formatted_context += f"\n**{line}**\n"
         elif "Planting Season" in line or "Harvest Time" in line or "Soil Type" in line or "Watering Needs" in line or "Pests and Diseases" in line:
             formatted_context += f"- {line}\n"
+    st.write("Formatted context: ", formatted_context)  # Debugging line
     return formatted_context
 
 # Crop Information Page
@@ -93,11 +103,15 @@ if option == "Ask a Question":
     user_question = st.text_input("Enter your question:")
     if st.button("Ask"):
         context = search_database(user_question)
-        formatted_context = format_context(context)
-        if formatted_context.strip():
-            qa_result = qa_pipeline(question=user_question, context=formatted_context)
-            answer = post_process_answer(qa_result['answer'], user_question)
-            st.write(f"**Answer:** {answer}")
+        if context.strip():
+            formatted_context = format_context(context)
+            if qa_pipeline:
+                qa_result = qa_pipeline(question=user_question, context=formatted_context)
+                st.write("QA Pipeline result: ", qa_result)  # Debugging line
+                answer = post_process_answer(qa_result['answer'], user_question)
+                st.write(f"**Answer:** {answer}")
+            else:
+                st.error("QA pipeline is not initialized.")
         else:
             st.write("No relevant information found in the database.")
 
