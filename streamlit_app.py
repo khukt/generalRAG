@@ -4,7 +4,7 @@ from transformers import T5ForConditionalGeneration, T5Tokenizer
 # Cache the model and tokenizer to optimize memory usage
 @st.cache_resource
 def load_model():
-    model_name = "t5-small"
+    model_name = "t5"
     model = T5ForConditionalGeneration.from_pretrained(model_name)
     tokenizer = T5Tokenizer.from_pretrained(model_name)
     return model, tokenizer
