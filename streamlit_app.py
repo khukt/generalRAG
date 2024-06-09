@@ -41,16 +41,15 @@ def search_database(question):
 
     for crop in data.get('crops', []):
         crop_text = f"Crop Name: {crop['name']}\nPlanting Season: {crop['planting_season']}\nHarvest Time: {crop['harvest_time']}\nSoil Type: {crop['soil_type']}\nWatering Needs: {crop['watering_needs']}\nPests and Diseases: {', '.join(crop['pests_diseases'])}\n"
-        context_entries.append((crop_text, crop_text))
+        context_entries.append(crop_text)
 
     # Calculate similarities
-    context_texts = [entry[0] for entry in context_entries]
-    context_embeddings = encode_texts(context_texts)
+    context_embeddings = encode_texts(context_entries)
     similarities = cosine_similarity([question_embedding], context_embeddings)[0]
 
     # Get the top 3 most similar entries
     top_indices = np.argsort(similarities)[-3:][::-1]
-    relevant_context = "\n\n".join([context_entries[idx][1] for idx in top_indices])
+    relevant_context = "\n\n".join([context_entries[idx] for idx in top_indices])
 
     # Debugging information
     st.write("Cosine Similarity Scores:", similarities)
@@ -72,7 +71,7 @@ def format_context(context):
     for line in lines:
         if "Crop Name" in line:
             formatted_context += f"\n**{line}**\n"
-        elif "Planting Season" in line or "Harvest Time" in line or "Soil Type" in line or "Watering Needs" in line or "Pests and Diseases" in line:
+        elif any(keyword in line for keyword in ["Planting Season", "Harvest Time", "Soil Type", "Watering Needs", "Pests and Diseases"]):
             formatted_context += f"- {line}\n"
     return formatted_context
 
