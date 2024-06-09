@@ -15,5 +15,4 @@
         "watering_needs": "Moderate watering",
         "pests_diseases": ["Corn Earworm", "Armyworm"]
     }
-    // Add more crops as needed
 }
