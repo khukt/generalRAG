@@ -33,7 +33,7 @@ def search_database(question):
 
     for crop in data.get('crops', []):
         crop_text = f"Crop Name: {crop['name']}\nPlanting Season: {crop['planting_season']}\nHarvest Time: {crop['harvest_time']}\nSoil Type: {crop['soil_type']}\nWatering Needs: {crop['watering_needs']}\nPests and Diseases: {', '.join(crop['pests_diseases'])}\n"
-        context_entries.append((crop_text, crop_text))
+        context_entries.append((crop_text, crop['name']))
 
     # Calculate similarities
     context_texts = [entry[0] for entry in context_entries]
@@ -42,11 +42,14 @@ def search_database(question):
 
     # Get the top 3 most similar entries
     top_indices = np.argsort(similarities)[-3:][::-1]
-    relevant_context = "\n\n".join([context_entries[idx][1] for idx in top_indices])
+    top_similarities = similarities[top_indices]
+    relevant_context = "\n\n".join([context_entries[idx][0] for idx in top_indices])
 
     # Debugging information
-    st.write("Cosine Similarity Scores:", similarities[0])
-    st.write("Top 3 Similar Entries' Indices:", top_indices[0])
+    st.write("Cosine Similarity Scores:", similarities)
+    for idx, sim in zip(top_indices, top_similarities):
+        st.write(f"Entry Index: {idx}, Crop Name: {context_entries[idx][1]}, Cosine Similarity Score: {sim}")
+
     st.write("Relevant Context Generated:", relevant_context)
 
     return relevant_context
