@@ -1,30 +1,65 @@
 import streamlit as st
-from transformers import GPT2LMHeadModel, GPT2Tokenizer
+from transformers import T5ForConditionalGeneration, T5Tokenizer
+import torch
 
-# Load the GPT-2 model and tokenizer
-model_name = "gpt2"
-tokenizer = GPT2Tokenizer.from_pretrained(model_name)
-model = GPT2LMHeadModel.from_pretrained(model_name)
+# Cache the model and tokenizer to optimize memory usage
+@st.cache_resource
+def load_model():
+    model_name = "t5-base"
+    model = T5ForConditionalGeneration.from_pretrained(model_name)
+    tokenizer = T5Tokenizer.from_pretrained(model_name)
+    return model, tokenizer
 
-# Function to generate responses using GPT-2
-def generate_response(prompt, max_length=150):
-    inputs = tokenizer.encode(prompt, return_tensors="pt")
-    outputs = model.generate(inputs, max_length=max_length, num_return_sequences=1)
-    text = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    return text
+model, tokenizer = load_model()
 
-# Streamlit app layout
-st.title("Chat with GPT-2")
-st.write("This is a simple chat application using the GPT-2 model.")
+# Function to generate text based on input question and context
+def generate_paragraph(question, context):
+    input_text = f"question: {question} context: {context}"
+    inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
+    outputs = model.generate(inputs, max_length=512, num_beams=4, early_stopping=True)
+    answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    return answer
 
-# Default test prompt
-default_prompt = "How to grow tomatoes?"
+# Streamlit UI
+st.title("Tomato Growing Guide Generator")
+st.write("Enter your question and context about growing tomatoes to generate a detailed guide.")
 
-# Text input for user prompt
-user_input = st.text_input("You:", default_prompt)
+question = st.text_input("Question", value="How to grow tomato?")
+context = st.text_area("Context", value="""
+    Crop Name: Tomato
+    Planting Season: Spring
+    Harvest Time: Summer
+    Soil Type: Well-drained, fertile soil
+    Watering Needs: Regular watering, keep soil moist but not waterlogged
+    Pests and Diseases: Aphids, Blight, Tomato Hornworm
+""")
 
-# Generate and display response when the user inputs text
-if user_input:
-    with st.spinner("Generating response..."):
-        response = generate_response(user_input)
-    st.text_area("GPT-2:", response, height=200)
+if st.button("Generate Guide"):
+    with st.spinner("Generating..."):
+        guide = generate_paragraph(question, context)
+    st.subheader("Generated Guide")
+    st.write(guide)
+
+# Cache resource decorator for efficient reloading
+@st.cache_resource
+def get_crop_details():
+    crop = {
+        'name': 'Tomato',
+        'planting_season': 'Spring',
+        'harvest_time': 'Summer',
+        'soil_type': 'Well-drained, fertile soil',
+        'watering_needs': 'Regular watering, keep soil moist but not waterlogged',
+        'pests_diseases': ['Aphids', 'Blight', 'Tomato Hornworm']
+    }
+    return crop
+
+crop = get_crop_details()
+crop_text = (
+    f"Crop Name: {crop['name']}\n"
+    f"Planting Season: {crop['planting_season']}\n"
+    f"Harvest Time: {crop['harvest_time']}\n"
+    f"Soil Type: {crop['soil_type']}\n"
+    f"Watering Needs: {crop['watering_needs']}\n"
+    f"Pests and Diseases: {', '.join(crop['pests_diseases'])}\n"
+)
+st.write(crop_text)
