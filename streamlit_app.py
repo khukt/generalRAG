@@ -55,7 +55,7 @@ top_p = st.slider("Top P", 0.0, 1.0, 0.9)
 repetition_penalty = st.slider("Repetition Penalty", 1.0, 2.0, 1.2)
 
 if st.button("Generate Explanation"):
-    prompt = f"Question: {question}\nContext: {context}\nExplanation:"
+    prompt = f"Context: {context}\nBased on the above context, provide a detailed explanation on how to grow tomatoes:"
     st.write("Debug Info: Prompt Sent to Model")
     st.write(prompt)  # Debug info: show the prompt
     explanation = generate_explanation(prompt, max_length, temperature, top_k, top_p, repetition_penalty)
