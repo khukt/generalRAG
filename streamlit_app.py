@@ -24,7 +24,7 @@ def search_database(question):
 
     # Search for relevant crop information
     for crop in data['crops']:
-        if any(keyword in question_lower for keyword in [crop['name'].lower(), "grow", "plant", "harvest", "water", "soil"]):
+        if crop['name'].lower() in question_lower or any(keyword in question_lower for keyword in ["grow", "plant", "harvest", "water", "soil"]):
             relevant_context += f"Crop Name: {crop['name']}\n"
             relevant_context += f"Planting Season: {crop['planting_season']}\n"
             relevant_context += f"Harvest Time: {crop['harvest_time']}\n"
@@ -34,7 +34,7 @@ def search_database(question):
 
     # Search for relevant pest/disease information
     for pest in data['pests_diseases']:
-        if any(keyword in question_lower for keyword in [pest['name'].lower(), "pest", "disease", "treat", "symptom"]):
+        if pest['name'].lower() in question_lower or any(keyword in question_lower for keyword in ["pest", "disease", "treat", "symptom"]):
             relevant_context += f"Pest/Disease Name: {pest['name']}\n"
             relevant_context += f"Affected Crops: {', '.join(pest['affected_crops'])}\n"
             relevant_context += f"Symptoms: {pest['symptoms']}\n"
@@ -84,7 +84,6 @@ if option == "Ask a Question":
         context = search_database(user_question)
         if context:
             qa_result = qa_pipeline(question=user_question, context=context)
-            st.write(f"**Answer:** {qa_result}")
             answer = post_process_answer(qa_result['answer'])
             st.write(f"**Answer:** {answer}")
         else:
