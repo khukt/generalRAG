@@ -69,7 +69,7 @@ if option == "Ask a Question":
         relevant_context = ""
 
         # Check if the question is about a specific crop
-        if "grow" in user_question.lower() or "plant" in user_question.lower():
+        if "grow" in user_question.lower() or "plant" in user_question.lower() or "harvest" in user_question.lower():
             for crop in data['crops']:
                 if crop['name'].lower() in user_question.lower():
                     relevant_context += f"Crop Name: {crop['name']}\n"
@@ -78,9 +78,9 @@ if option == "Ask a Question":
                     relevant_context += f"Soil Type: {crop['soil_type']}\n"
                     relevant_context += f"Watering Needs: {crop['watering_needs']}\n"
                     relevant_context += f"Pests and Diseases: {', '.join(crop['pests_diseases'])}\n"
-        
+
         # Check if the question is about pests or diseases
-        if "pest" in user_question.lower() or "disease" in user_question.lower():
+        if "pest" in user_question.lower() or "disease" in user_question.lower() or "treat" in user_question.lower() or "symptom" in user_question.lower():
             for pest in data['pests_diseases']:
                 if pest['name'].lower() in user_question.lower():
                     relevant_context += f"Pest/Disease Name: {pest['name']}\n"
