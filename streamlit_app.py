@@ -13,9 +13,9 @@ except Exception as e:
     st.error(f"Error loading data: {e}")
     data = {}
 
-# Initialize the summarization pipeline (using facebook/bart-large-cnn)
+# Initialize the summarization pipeline (using DistilBART)
 try:
-    summarization_pipeline = pipeline("summarization", model="facebook/bart-large-cnn")
+    summarization_pipeline = pipeline("summarization", model="sshleifer/distilbart-cnn-12-6")
 except Exception as e:
     st.error(f"Error loading summarization model: {e}")
     summarization_pipeline = None
