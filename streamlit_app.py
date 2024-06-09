@@ -88,9 +88,10 @@ def search_database(question):
 # Function to summarize context using the summarization model
 def summarize_context(context):
     try:
+        input_text = f"Summarize the following information about growing tomatoes:\n{context}\nSummary:"
         summarized = summarization_pipeline(
-            context, 
-            max_length=200, 
+            input_text, 
+            max_length=150, 
             min_length=50, 
             num_beams=4, 
             length_penalty=2.0, 
