@@ -85,12 +85,18 @@ def search_database(question):
         st.error(f"Error searching database: {e}")
         return ""
 
+# Function to format context for summarization
+def format_context(context):
+    formatted_context = "Here is the information about growing tomatoes:\n"
+    formatted_context += context.replace("\n", ". ").replace("  ", " ")
+    return formatted_context
+
 # Function to summarize context using the summarization model
 def summarize_context(context):
     try:
-        input_text = f"Summarize the following information about growing tomatoes:\n{context}\nSummary:"
+        formatted_context = format_context(context)
         summarized = summarization_pipeline(
-            input_text, 
+            formatted_context, 
             max_length=150, 
             min_length=50, 
             num_beams=4, 
