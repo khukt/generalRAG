@@ -40,7 +40,12 @@ def search_database(question):
     context_entries = []
 
     for crop in data.get('crops', []):
-        crop_text = f"Crop Name: {crop['name']}\nPlanting Season: {crop['planting_season']}\nHarvest Time: {crop['harvest_time']}\nSoil Type: {crop['soil_type']}\nWatering Needs: {crop['watering_needs']}\nPests and Diseases: {', '.join(crop['pests_diseases'])}\n"
+        crop_text = f"Crop Name: {crop['name']}\n"
+        crop_text += f"Planting Season: {crop['planting_season']}\n"
+        crop_text += f"Harvest Time: {crop['harvest_time']}\n"
+        crop_text += f"Soil Type: {crop['soil_type']}\n"
+        crop_text += f"Watering Needs: {crop['watering_needs']}\n"
+        crop_text += f"Pests and Diseases: {', '.join(crop['pests_diseases'])}\n"
         context_entries.append((crop_text, crop['name']))
 
     # Calculate similarities
@@ -75,6 +80,17 @@ def post_process_answer(answer, question):
         return "I couldn't find the specific information you were looking for. Please try rephrasing your question or provide more details."
     return f"Based on your question about '{question}', here is the information:\n\n{answer.strip()}"
 
+# Function to format context for better readability
+def format_context(context):
+    formatted_context = ""
+    lines = context.split("\n")
+    for line in lines:
+        if "Crop Name" in line:
+            formatted_context += f"\n**{line}**\n"
+        elif "Planting Season" in line or "Harvest Time" in line or "Soil Type" in line or "Watering Needs" in line or "Pests and Diseases" in line:
+            formatted_context += f"- {line}\n"
+    return formatted_context
+
 # Ask a Question Page
 st.header("Ask a Question")
 user_question = st.text_input("Enter your question:")
@@ -82,9 +98,10 @@ if st.button("Ask"):
     if sentence_model:
         context = search_database(user_question)
         if context.strip():
+            formatted_context = format_context(context)
+            st.write("**Context Provided to Model:**", formatted_context)
             if qa_pipeline:
-                qa_result = qa_pipeline(question=user_question, context=context)
-                st.write("**QA Pipeline result:**", qa_result)  # Debugging line
+                qa_result = qa_pipeline(question=user_question, context=formatted_context)
                 answer = post_process_answer(qa_result['answer'], user_question)
                 st.write("**Answer:**", answer)
             else:
