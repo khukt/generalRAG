@@ -3,6 +3,7 @@ import json
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from sentence_transformers import SentenceTransformer
+from transformers import pipeline
 
 # Load the JSON database
 try:
@@ -11,6 +12,13 @@ try:
 except Exception as e:
     st.error(f"Error loading data: {e}")
     data = {}
+
+# Initialize the transformer pipeline for question answering
+try:
+    qa_pipeline = pipeline("question-answering", model="distilbert-base-cased-distilled-squad")
+except Exception as e:
+    st.error(f"Error loading transformer model: {e}")
+    qa_pipeline = None
 
 # Initialize the sentence transformer model for encoding
 try:
@@ -61,18 +69,29 @@ def search_database(question):
 
     return relevant_context
 
+# Function to post-process the model's answer
+def post_process_answer(answer, question):
+    if not answer.strip():
+        return "I couldn't find the specific information you were looking for. Please try rephrasing your question or provide more details."
+    return f"Based on your question about '{question}', here is the information:\n\n{answer.strip()}"
+
 # Ask a Question Page
 st.header("Ask a Question")
 user_question = st.text_input("Enter your question:")
 if st.button("Ask"):
-    if sentence_model:
+    if sentence_model and qa_pipeline:
         context = search_database(user_question)
         if context.strip():
-            st.write("**Relevant Information:**", context)
+            formatted_context = context
+            st.write("**Context Provided to Model:**", formatted_context)  # Debugging line
+            qa_result = qa_pipeline(question=user_question, context=formatted_context)
+            st.write("**QA Pipeline result:**", qa_result)  # Debugging line
+            answer = post_process_answer(qa_result['answer'], user_question)
+            st.write(f"**Answer:** {answer}")
         else:
             st.write("No relevant information found in the database.")
     else:
-        st.error("Sentence transformer model is not initialized.")
+        st.error("Sentence transformer model or QA pipeline is not initialized.")
 
 if __name__ == '__main__':
     st.write("Welcome to the Agriculture Information Database!")
