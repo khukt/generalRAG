@@ -45,7 +45,7 @@ def search_database(question):
     relevant_context = "\n\n".join([context_entries[idx][1] for idx in top_indices])
 
     # Debugging information
-    st.write("Cosine Similarity Scores:", similarities)
+    st.write("Cosine Similarity Scores:", similarities[0])
     st.write("Top 3 Similar Entries' Indices:", top_indices[0])
     st.write("Relevant Context Generated:", relevant_context)
 
