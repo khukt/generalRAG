@@ -12,7 +12,7 @@ def load_model():
 model, tokenizer = load_model()
 
 # Function to generate text based on input question and context
-def generate_paragraph(question, context):
+def generate_paragraph(question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping):
     input_text = (
         f"Please provide a detailed, step-by-step guide on how to grow the specified crop based on the following question and context.\n\n"
         f"Question: {question}\n\n"
@@ -20,7 +20,13 @@ def generate_paragraph(question, context):
         f"Steps:"
     )
     inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
-    outputs = model.generate(inputs, max_length=300, num_beams=5, no_repeat_ngram_size=2, early_stopping=True)
+    outputs = model.generate(
+        inputs, 
+        max_length=max_length, 
+        num_beams=num_beams, 
+        no_repeat_ngram_size=no_repeat_ngram_size, 
+        early_stopping=early_stopping
+    )
     answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
     return format_output(answer)
 
@@ -60,9 +66,15 @@ else:
 question = st.text_input("Question", value=f"How to grow {crop_choice.lower()}?")
 context = st.text_area("Context", value=context)
 
+# Additional controls for model.generate parameters
+max_length = st.slider("Max Length", 50, 500, 300)
+num_beams = st.slider("Number of Beams", 1, 10, 5)
+no_repeat_ngram_size = st.slider("No Repeat N-Gram Size", 1, 10, 2)
+early_stopping = st.checkbox("Early Stopping", value=True)
+
 if st.button("Generate Guide"):
     with st.spinner("Generating..."):
-        guide = generate_paragraph(question, context)
+        guide = generate_paragraph(question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping)
     st.subheader("Generated Guide")
     st.write(guide)
 
