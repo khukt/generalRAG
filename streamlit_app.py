@@ -72,7 +72,7 @@ def generate_paragraph(question, context):
         f"Guide:"
     )
     inputs = t5_tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
-    outputs = t5_model.generate(inputs, max_length=300, num_beams=5, no_repeat_ngram_size=2, early_stopping=True)
+    outputs = t5_model.generate(inputs, max_length=512, num_beams=5, no_repeat_ngram_size=2, early_stopping=True)
     answer = t5_tokenizer.decode(outputs[0], skip_special_tokens=True)
     return format_output(answer)
 
