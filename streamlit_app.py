@@ -1,13 +1,15 @@
 import streamlit as st
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import T5Tokenizer, T5ForConditionalGeneration
 
-# Load DistilGPT-2 model and tokenizer
-tokenizer = AutoTokenizer.from_pretrained("distilgpt2")
-model = AutoModelForCausalLM.from_pretrained("distilgpt2")
+# Load T5 model and tokenizer
+model_name = "t5-small"
+tokenizer = T5Tokenizer.from_pretrained(model_name)
+model = T5ForConditionalGeneration.from_pretrained(model_name)
 
-def generate_explanation(prompt):
-    inputs = tokenizer.encode(prompt, return_tensors="pt")
-    outputs = model.generate(inputs, max_length=150, num_return_sequences=1)
+def generate_explanation(question, context):
+    input_text = f"question: {question} context: {context}"
+    inputs = tokenizer.encode(input_text, return_tensors="pt")
+    outputs = model.generate(inputs, max_length=150, num_return_sequences=1, early_stopping=True)
     explanation = tokenizer.decode(outputs[0], skip_special_tokens=True)
     return explanation
 
@@ -26,6 +28,5 @@ context = st.text_area("Context provided to model:",
                        "Pests and Diseases: Aphids, Blight")
 
 if st.button("Generate Explanation"):
-    prompt = f"Question: {question}\nContext: {context}\nExplanation:"
-    explanation = generate_explanation(prompt)
+    explanation = generate_explanation(question, context)
     st.write(explanation)
