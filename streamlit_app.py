@@ -25,7 +25,7 @@ def search_database(question):
     # Search for relevant crop information
     for crop in data['crops']:
         if crop['name'].lower() in question_lower:
-            relevant_context += f"How to grow {crop['name']}:\n"
+            relevant_context += f"Crop Name: {crop['name']}\n"
             relevant_context += f"Planting Season: {crop['planting_season']}\n"
             relevant_context += f"Harvest Time: {crop['harvest_time']}\n"
             relevant_context += f"Soil Type: {crop['soil_type']}\n"
@@ -39,6 +39,17 @@ def post_process_answer(answer, question):
     if not answer.strip() or answer.strip().lower() == "soil":
         return "I couldn't find the specific information you were looking for. Please try rephrasing your question or provide more details."
     return f"Based on your question about '{question}', here is the information:\n\n{answer.strip()}"
+
+# Function to format context for better readability
+def format_context(context):
+    formatted_context = ""
+    lines = context.split("\n")
+    for line in lines:
+        if "Crop Name" in line:
+            formatted_context += f"\n**{line}**\n"
+        elif "Planting Season" in line or "Harvest Time" in line or "Soil Type" in line or "Watering Needs" in line or "Pests and Diseases" in line:
+            formatted_context += f"- {line}\n"
+    return formatted_context
 
 # Crop Information Page
 if option == "Crop Information":
@@ -76,8 +87,9 @@ if option == "Ask a Question":
     user_question = st.text_input("Enter your question:")
     if st.button("Ask"):
         context = search_database(user_question)
-        if context:
-            qa_result = qa_pipeline(question=user_question, context=context)
+        formatted_context = format_context(context)
+        if formatted_context:
+            qa_result = qa_pipeline(question=user_question, context=formatted_context)
             answer = post_process_answer(qa_result['answer'], user_question)
             st.write(f"**Answer:** {answer}")
         else:
