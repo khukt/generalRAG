@@ -24,27 +24,19 @@ def search_database(question):
 
     # Search for relevant crop information
     for crop in data['crops']:
-        if crop['name'].lower() in question_lower or any(keyword in question_lower for keyword in ["grow", "plant", "harvest", "water", "soil"]):
-            relevant_context += f"Crop Name: {crop['name']}\n"
+        if crop['name'].lower() in question_lower:
+            relevant_context += f"How to grow {crop['name']}:\n"
             relevant_context += f"Planting Season: {crop['planting_season']}\n"
             relevant_context += f"Harvest Time: {crop['harvest_time']}\n"
             relevant_context += f"Soil Type: {crop['soil_type']}\n"
             relevant_context += f"Watering Needs: {crop['watering_needs']}\n"
             relevant_context += f"Pests and Diseases: {', '.join(crop['pests_diseases'])}\n\n"
 
-    # Search for relevant pest/disease information
-    for pest in data['pests_diseases']:
-        if pest['name'].lower() in question_lower or any(keyword in question_lower for keyword in ["pest", "disease", "treat", "symptom"]):
-            relevant_context += f"Pest/Disease Name: {pest['name']}\n"
-            relevant_context += f"Affected Crops: {', '.join(pest['affected_crops'])}\n"
-            relevant_context += f"Symptoms: {pest['symptoms']}\n"
-            relevant_context += f"Treatment: {pest['treatment']}\n\n"
-
     return relevant_context
 
 # Function to post-process the model's answer
 def post_process_answer(answer, question):
-    if not answer.strip():
+    if not answer.strip() or answer.strip().lower() == "soil":
         return "I couldn't find the specific information you were looking for. Please try rephrasing your question or provide more details."
     return f"Based on your question about '{question}', here is the information:\n\n{answer.strip()}"
 
