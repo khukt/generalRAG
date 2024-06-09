@@ -12,13 +12,29 @@ def load_model():
 model, tokenizer = load_model()
 
 # Function to generate text based on input question and context
-def generate_paragraph(question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping):
-    input_text = (
-        f"Please provide a detailed, step-by-step guide on how to grow the specified crop based on the following question and context.\n\n"
-        f"Question: {question}\n\n"
-        f"Context: {context}\n\n"
-        f"Steps:"
-    )
+def generate_paragraph(question_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping):
+    templates = {
+        "step-by-step": (
+            f"Please provide a detailed, step-by-step guide on how to grow the specified crop based on the following question and context.\n\n"
+            f"Question: {question}\n\n"
+            f"Context: {context}\n\n"
+            f"Steps:"
+        ),
+        "common issues": (
+            f"Please provide a detailed explanation of common issues and their solutions for growing the specified crop based on the following question and context.\n\n"
+            f"Question: {question}\n\n"
+            f"Context: {context}\n\n"
+            f"Issues and Solutions:"
+        ),
+        "best practices": (
+            f"Please provide a detailed list of best practices for growing the specified crop based on the following question and context.\n\n"
+            f"Question: {question}\n\n"
+            f"Context: {context}\n\n"
+            f"Best Practices:"
+        )
+    }
+    
+    input_text = templates.get(question_type, templates["step-by-step"])
     inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
     outputs = model.generate(
         inputs, 
@@ -40,21 +56,20 @@ def format_output(output):
 
 # Streamlit UI
 st.title("Crop Growing Guide Generator")
-st.write("Select a crop and enter your question and context to generate a detailed guide.")
+st.write("Select a crop, question type, and enter your question and context to generate a detailed guide.")
 
 crop_choice = st.selectbox("Select Crop", ["Tomato", "Corn"])
 
-if crop_choice == "Tomato":
-    context = """
+crop_contexts = {
+    "Tomato": """
         Crop Name: Tomato
         Planting Season: Spring
         Harvest Time: Summer
         Soil Type: Well-drained, fertile soil
         Watering Needs: Regular watering, keep soil moist but not waterlogged
         Pests and Diseases: Aphids, Blight, Tomato Hornworm
-    """
-else:
-    context = """
+    """,
+    "Corn": """
         Crop Name: Corn
         Planting Season: Late Spring
         Harvest Time: Late Summer to Early Fall
@@ -62,9 +77,11 @@ else:
         Watering Needs: Moderate watering, keep soil moist especially during tasseling and ear development
         Pests and Diseases: Corn Earworm, Rootworm, Corn Smut
     """
+}
 
+question_type = st.selectbox("Select Question Type", ["step-by-step", "common issues", "best practices"])
 question = st.text_input("Question", value=f"How to grow {crop_choice.lower()}?")
-context = st.text_area("Context", value=context)
+context = st.text_area("Context", value=crop_contexts[crop_choice])
 
 # Additional controls for model.generate parameters
 max_length = st.slider("Max Length", 50, 500, 300)
@@ -74,7 +91,7 @@ early_stopping = st.checkbox("Early Stopping", value=True)
 
 if st.button("Generate Guide"):
     with st.spinner("Generating..."):
-        guide = generate_paragraph(question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping)
+        guide = generate_paragraph(question_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping)
     st.subheader("Generated Guide")
     st.write(guide)
 
