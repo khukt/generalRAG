@@ -1,0 +1,39 @@
+{
+  "crops": [
+    {
+      "id": 1,
+      "name": "Tomato",
+      "planting_season": "Spring",
+      "harvest_time": "75 days",
+      "soil_type": "Loamy",
+      "watering_needs": "1 inch per week",
+      "pests_diseases": ["Aphids", "Blight"]
+    }
+  ],
+  "pests_diseases": [
+    {
+      "id": 1,
+      "name": "Aphids",
+      "affected_crops": ["Tomato", "Cucumber"],
+      "symptoms": "Yellowing leaves, sticky residue",
+      "treatment": "Neem oil, ladybugs"
+    }
+  ],
+  "weather": [
+    {
+      "region": "Midwest",
+      "climate": "Temperate",
+      "average_temp": "15°C",
+      "rainfall": "30 inches",
+      "best_crops": ["Corn", "Soybean"]
+    }
+  ],
+  "market": [
+    {
+      "id": 1,
+      "crop": "Tomato",
+      "current_price": "$2.5 per kg",
+      "demand_trends": "High in summer"
+    }
+  ]
+}
