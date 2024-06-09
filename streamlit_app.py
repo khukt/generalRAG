@@ -55,6 +55,15 @@ def generate_context(question):
                 context += f"Symptoms: {pest['symptoms']}\n"
                 context += f"Treatment: {pest['treatment']}\n\n"
     
+    # Include more comprehensive information
+    for crop in data['crops']:
+        context += f"General information about growing {crop['name']}:\n"
+        context += f"Planting Season: {crop['planting_season']}\n"
+        context += f"Harvest Time: {crop['harvest_time']}\n"
+        context += f"Soil Type: {crop['soil_type']}\n"
+        context += f"Watering Needs: {crop['watering_needs']}\n"
+        context += f"Pests and Diseases: {', '.join(crop['pests_diseases'])}\n\n"
+    
     return context
 
 # Function to post-process the model's answer
