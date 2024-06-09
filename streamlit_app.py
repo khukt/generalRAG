@@ -74,13 +74,13 @@ def search_database(question):
 
     return relevant_context
 
-# Function to generate an answer using the GPT model
-def generate_answer(question, context):
-    input_text = f"Question: {question}\nContext: {context}\nAnswer:"
-    gpt_result = gpt_pipeline(input_text, max_length=100, num_return_sequences=1)
+# Function to generate a summary using the GPT model
+def generate_summary(context):
+    input_text = f"Context: {context}\n\nSummary:"
+    gpt_result = gpt_pipeline(input_text, max_length=150, num_return_sequences=1, truncation=True)
     generated_text = gpt_result[0]['generated_text']
-    answer_start = generated_text.find("Answer:") + len("Answer:")
-    return generated_text[answer_start:].strip()
+    summary_start = generated_text.find("Summary:") + len("Summary:")
+    return generated_text[summary_start:].strip()
 
 # Ask a Question Page
 st.header("Ask a Question")
@@ -92,9 +92,9 @@ if st.button("Ask"):
         if context.strip():
             st.write("**Context Provided to Model:**", context)
             if gpt_pipeline:
-                # Generate the answer using the GPT model
-                answer = generate_answer(user_question, context)
-                st.write("**Answer:**", answer)
+                # Generate the summary using the GPT model
+                summary = generate_summary(context)
+                st.write("**Summary:**", summary)
             else:
                 st.error("GPT pipeline is not initialized.")
         else:
