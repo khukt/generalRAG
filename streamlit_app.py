@@ -18,7 +18,13 @@ def generate_paragraph(question, context):
     inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
     outputs = model.generate(inputs, max_length=512, num_beams=4, early_stopping=True)
     answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    return answer
+    return format_output(answer)
+
+# Function to format the output into a well-written paragraph
+def format_output(output):
+    sentences = output.split('. ')
+    formatted_output = '. '.join(sentence.capitalize() for sentence in sentences)
+    return formatted_output
 
 # Streamlit UI
 st.title("Tomato Growing Guide Generator")
