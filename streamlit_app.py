@@ -1,22 +1,22 @@
 import streamlit as st
-from transformers import T5ForConditionalGeneration, T5Tokenizer
+from transformers import GPT2LMHeadModel, GPT2Tokenizer
 import torch
 
 # Cache the model and tokenizer to optimize memory usage
 @st.cache_resource
 def load_model():
-    model_name = "t5-base"
-    model = T5ForConditionalGeneration.from_pretrained(model_name)
-    tokenizer = T5Tokenizer.from_pretrained(model_name)
+    model_name = "distilgpt2"
+    model = GPT2LMHeadModel.from_pretrained(model_name)
+    tokenizer = GPT2Tokenizer.from_pretrained(model_name)
     return model, tokenizer
 
 model, tokenizer = load_model()
 
 # Function to generate text based on input question and context
 def generate_paragraph(question, context):
-    input_text = f"Question: {question}\nContext: {context}\nAnswer:"
+    input_text = f"{question} {context}"
     inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
-    outputs = model.generate(inputs, max_length=512, num_beams=4, early_stopping=True)
+    outputs = model.generate(inputs, max_length=150, num_beams=5, no_repeat_ngram_size=2, early_stopping=True)
     answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
     return format_output(answer)
 
