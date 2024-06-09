@@ -14,10 +14,10 @@ def load_json():
                 "id": 1,
                 "name": "Tomato",
                 "planting_season": "Spring",
-                "harvest_time": "75 days",
-                "soil_type": "Loamy",
-                "watering_needs": "1 inch per week",
-                "pests_diseases": ["Aphids", "Blight"]
+                "harvest_time": "Summer",
+                "soil_type": "Well-drained, fertile soil",
+                "watering_needs": "Regular watering, keep soil moist but not waterlogged",
+                "pests_diseases": ["Aphids", "Blight", "Tomato Hornworm"]
             }
         ],
         "pests_diseases": [
