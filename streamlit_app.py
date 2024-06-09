@@ -76,7 +76,7 @@ def search_database(question):
 
 # Function to post-process the model's answer
 def post_process_answer(answer, question):
-    if not answer.strip() or answer.strip().lower() == "soil":
+    if not answer.strip():
         return "I couldn't find the specific information you were looking for. Please try rephrasing your question or provide more details."
     return f"Based on your question about '{question}', here is the information:\n\n{answer.strip()}"
 
