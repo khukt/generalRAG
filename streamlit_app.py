@@ -66,12 +66,13 @@ t5_model, t5_tokenizer, sbert_model = load_models()
 def generate_paragraph(question, context):
     input_text = (
         f"Please provide a comprehensive, detailed, and step-by-step guide on how to grow tomatoes. "
-        f"Include all necessary details, tips, and best practices based on the following question and context.\n\n"
+        f"Include all necessary details, tips, and best practices based on the following question and context. "
+        f"Ensure to cover preparation, planting, care, pest control, and harvesting stages.\n\n"
         f"Question: {question}\n\n"
         f"Context: {context}\n\n"
-        f"Guide:"
+        f"Detailed Guide:"
     )
-    inputs = t5_tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
+    inputs = t5_tokenizer.encode(input_text, return_tensors="pt", max_length=1024, truncation=True)
     outputs = t5_model.generate(inputs, max_length=512, num_beams=5, no_repeat_ngram_size=2, early_stopping=True)
     answer = t5_tokenizer.decode(outputs[0], skip_special_tokens=True)
     return format_output(answer)
