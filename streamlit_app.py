@@ -78,7 +78,9 @@ def search_database(question):
 def generate_answer(question, context):
     input_text = f"Question: {question}\nContext: {context}\nAnswer:"
     gpt_result = gpt_pipeline(input_text, max_length=100, num_return_sequences=1)
-    return gpt_result[0]['generated_text'].split("Answer:")[1].strip()
+    generated_text = gpt_result[0]['generated_text']
+    answer_start = generated_text.find("Answer:") + len("Answer:")
+    return generated_text[answer_start:].strip()
 
 # Ask a Question Page
 st.header("Ask a Question")
