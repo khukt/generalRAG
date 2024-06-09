@@ -2,15 +2,15 @@ import streamlit as st
 from transformers import T5Tokenizer, T5ForConditionalGeneration
 
 # Load T5 model and tokenizer
-model_name = "t5-small"
+model_name = "t5-base"
 tokenizer = T5Tokenizer.from_pretrained(model_name)
 model = T5ForConditionalGeneration.from_pretrained(model_name)
 
 def generate_explanation(question, context):
     input_text = (
-        f"Explain how to grow tomatoes based on the following context:\n\n"
-        f"{context}\n\n"
-        f"Provide detailed steps and tips."
+        f"Question: {question}\n"
+        f"Context: {context}\n\n"
+        f"Detailed Explanation on how to grow tomatoes:"
     )
     inputs = tokenizer.encode(input_text, return_tensors="pt")
     outputs = model.generate(inputs, max_length=300, num_return_sequences=1, early_stopping=True)
