@@ -1,6 +1,5 @@
 import streamlit as st
 import json
-import numpy as np
 import torch
 from transformers import T5ForConditionalGeneration, T5Tokenizer
 from sentence_transformers import SentenceTransformer, util
@@ -54,9 +53,9 @@ data = load_json()
 # Cache the model and tokenizer to optimize memory usage
 @st.cache_resource
 def load_models():
-    t5_model_name = "google/flan-t5-base"
-    t5_model = T5ForConditionalGeneration.from_pretrained(t5_model_name)
-    t5_tokenizer = T5Tokenizer.from_pretrained(t5_model_name)
+    model_name = "google/flan-t5-base"
+    t5_model = T5ForConditionalGeneration.from_pretrained(model_name)
+    t5_tokenizer = T5Tokenizer.from_pretrained(model_name)
     sbert_model = SentenceTransformer('all-MiniLM-L6-v2')
     return t5_model, t5_tokenizer, sbert_model
 
@@ -70,9 +69,9 @@ def generate_paragraph(question, context):
         f"Context: {context}\n\n"
         f"Steps:"
     )
-    inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
-    outputs = model.generate(inputs, max_length=300, num_beams=5, no_repeat_ngram_size=2, early_stopping=True)
-    answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    inputs = t5_tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
+    outputs = t5_model.generate(inputs, max_length=300, num_beams=5, no_repeat_ngram_size=2, early_stopping=True)
+    answer = t5_tokenizer.decode(outputs[0], skip_special_tokens=True)
     return format_output(answer)
 
 # Function to format the output into a well-written paragraph
