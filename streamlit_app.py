@@ -14,9 +14,9 @@ except Exception as e:
     st.error(f"Error loading data: {e}")
     data = {}
 
-# Initialize the summarization pipeline (using distilbart-cnn-12-6)
+# Initialize the summarization pipeline (using google/pegasus-xsum)
 try:
-    summarization_pipeline = pipeline("summarization", model="sshleifer/distilbart-cnn-12-6")
+    summarization_pipeline = pipeline("summarization", model="google/pegasus-xsum")
     st.write("Summarization model loaded successfully.")
 except Exception as e:
     st.error(f"Error loading summarization model: {e}")
