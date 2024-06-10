@@ -69,6 +69,12 @@ def determine_question_type(question):
         return "Common Issues"
     elif any(keyword in question for keyword in ["best practices", "tips", "guidelines", "recommendations"]):
         return "Best Practices"
+    elif any(keyword in question for keyword in ["watering", "irrigation", "water schedule"]):
+        return "Watering Schedule"
+    elif any(keyword in question for keyword in ["fertilization", "fertilizer", "feeding", "nutrition"]):
+        return "Fertilization Tips"
+    elif any(keyword in question for keyword in ["harvest", "harvesting", "pick", "picking"]):
+        return "Harvest Timing"
     else:
         return "Step-by-Step Guide"  # Default to step-by-step if no keywords match
 
@@ -92,6 +98,24 @@ def generate_paragraph(question_type, question, context, max_length, num_beams, 
             f"Question: {question}\n\n"
             f"Context: {context}\n\n"
             f"Best Practices:"
+        ),
+        "Watering Schedule": (
+            f"Please provide a detailed watering schedule for the specified crop based on the following question and context.\n\n"
+            f"Question: {question}\n\n"
+            f"Context: {context}\n\n"
+            f"Watering Schedule:"
+        ),
+        "Fertilization Tips": (
+            f"Please provide detailed fertilization tips for the specified crop based on the following question and context.\n\n"
+            f"Question: {question}\n\n"
+            f"Context: {context}\n\n"
+            f"Fertilization Tips:"
+        ),
+        "Harvest Timing": (
+            f"Please provide detailed harvest timing information for the specified crop based on the following question and context.\n\n"
+            f"Question: {question}\n\n"
+            f"Context: {context}\n\n"
+            f"Harvest Timing:"
         )
     }
     
