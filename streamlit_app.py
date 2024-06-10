@@ -157,16 +157,16 @@ question = st.text_input("Question", value="How to grow tomatoes?", key="questio
 if question:
     relevant_context = find_relevant_crop_context(question, crop_embeddings)
     context = f"""
-    Crop Name: {relevant_context['name']}
-    Planting Season: {relevant_context['planting_season']}
-    Harvest Time: {relevant_context['harvest_time']}
-    Soil Type: {relevant_context['soil_type']}
-    Soil Preparation: {relevant_context['soil_preparation']}
-    Watering Frequency: {relevant_context['watering_frequency']}
-    Fertilization Schedule: {relevant_context['fertilization_schedule']}
-    Pests and Diseases: {', '.join(relevant_context['pests_diseases'])}
-    Pest Management: {relevant_context['pest_management']}
-    Harvesting Techniques: {relevant_context['harvesting_techniques']}
+    Crop Name: {relevant_context.get('name', 'N/A')}
+    Planting Season: {relevant_context.get('planting_season', 'N/A')}
+    Harvest Time: {relevant_context.get('harvest_time', 'N/A')}
+    Soil Type: {relevant_context.get('soil_type', 'N/A')}
+    Soil Preparation: {relevant_context.get('soil_preparation', 'N/A')}
+    Watering Frequency: {relevant_context.get('watering_frequency', 'N/A')}
+    Fertilization Schedule: {relevant_context.get('fertilization_schedule', 'N/A')}
+    Pests and Diseases: {', '.join(relevant_context.get('pests_diseases', []))}
+    Pest Management: {relevant_context.get('pest_management', 'N/A')}
+    Harvesting Techniques: {relevant_context.get('harvesting_techniques', 'N/A')}
     """
     question_type = determine_question_type(question)
 else:
