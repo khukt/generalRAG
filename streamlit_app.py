@@ -20,8 +20,7 @@ def get_crop_data():
 
 # Cache the model and tokenizer to optimize memory usage
 @st.cache_resource
-def load_model():
-    model_name = "google/flan-t5-base"
+def load_model(model_name):
     model = T5ForConditionalGeneration.from_pretrained(model_name)
     tokenizer = T5Tokenizer.from_pretrained(model_name, legacy=False)
     return model, tokenizer
@@ -142,14 +141,14 @@ def load_templates(file_path='templates.json'):
 
 # Function to save templates
 def save_templates(templates, file_path='templates.json'):
-    with open(file_path, 'w') as file:
+    with open(file_path, 'w') as file):
         json.dump(templates, file, indent=4)
 
 # Load existing templates or default ones
 templates = load_templates()
 
 # Function to generate text based on input question and context
-def generate_paragraph(question_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping):
+def generate_paragraph(model, tokenizer, question_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping):
     input_text = templates[question_type]["template"].format(question=question, context=context)
     inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
     
@@ -183,12 +182,31 @@ def format_output(output):
 st.title("Crop Growing Guide Generator")
 st.write("Enter your question to generate a detailed guide.")
 
-question = st.text_input("Question", value="How to grow tomatoes?", key="question")
+# Add a selectbox for model selection
+model_name = st.selectbox(
+    "Select Model",
+    [
+        "google/flan-t5-small",
+        "google/flan-t5-base",
+        "google/flan-t5-large",
+        "google/flan-t5-xl",
+        "google/flan-t5-xxl"
+    ],
+    index=1
+)
+
+# Clear previous model cache if a new model is selected
+if "previous_model_name" in st.session_state and st.session_state.previous_model_name != model_name:
+    load_model.clear()
+
+st.session_state.previous_model_name = model_name
 
 crop_data = get_crop_data()
 embedding_model = load_embedding_model()
-model, tokenizer = load_model()
+model, tokenizer = load_model(model_name)
 embeddings = generate_embeddings(crop_data)
+
+question = st.text_input("Question", value="How to grow tomatoes?", key="question")
 
 if question:
     relevant_context = find_relevant_context(question, embeddings)
@@ -242,7 +260,7 @@ if st.sidebar.button("Clear Cache and Reload Templates"):
 
 if question:
     with st.spinner("Generating..."):
-        guide, memory_footprint = generate_paragraph(question_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping)
+        guide, memory_footprint = generate_paragraph(model, tokenizer, question_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping)
     st.subheader("Generated Guide")
     st.write(guide)
     
