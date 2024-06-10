@@ -40,23 +40,23 @@ model, tokenizer = load_model()
 def generate_embeddings(data):
     embeddings = {}
     for key, details in data.items():
-        context = generate_context(details)
+        context = generate_context(key, details)
         embeddings[key] = embedding_model.encode(context, convert_to_tensor=True)
     return embeddings
 
 # Function to generate context from details
-def generate_context(details):
+def generate_context(crop_name, details):
+    context = [f"Crop Name: {crop_name}"]
     if isinstance(details, dict):
-        context = []
         for key, value in details.items():
             if isinstance(value, list):
                 value = ', '.join(map(str, value))
             elif isinstance(value, dict):
-                value = generate_context(value)  # Recursively handle nested dictionaries
+                value = generate_context(crop_name, value)  # Recursively handle nested dictionaries
             context.append(f"{key.replace('_', ' ').title()}: {value}")
-        return '\n'.join(context)
     else:
-        return str(details)
+        context.append(str(details))
+    return '\n'.join(context)
 
 # Function to measure memory usage
 def memory_usage():
@@ -74,7 +74,7 @@ def find_relevant_context(question, _embeddings):
     cosine_scores = util.pytorch_cos_sim(question_embedding, torch.stack(list(_embeddings.values())))
     best_match_index = torch.argmax(cosine_scores).item()
     best_match_key = list(_embeddings.keys())[best_match_index]
-    return crop_data[best_match_key]
+    return best_match_key, crop_data[best_match_key]
 
 # Function to determine question type
 def determine_question_type(question, keyword_mapping):
@@ -168,8 +168,8 @@ for line in templates_text.split('\n'):
         template_mapping[q_type.strip()] = template.strip()
 
 if question:
-    relevant_context = find_relevant_context(question, embeddings)
-    context = generate_context(relevant_context)
+    crop_name, relevant_context = find_relevant_context(question, embeddings)
+    context = generate_context(crop_name, relevant_context)
     question_type = determine_question_type(question, keyword_mapping)
 else:
     context = ""
