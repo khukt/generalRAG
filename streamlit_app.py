@@ -188,9 +188,13 @@ model_name = st.selectbox(
     [
         "google/flan-t5-small",
         "google/flan-t5-base",
-        "google/flan-t5-large",
-        "google/flan-t5-xl",
-        "google/flan-t5-xxl"
+        "t5-small",
+        "t5-base",
+        "t5-small-lm-adapt",
+        "t5-base-lm-adapt",
+        "t5-large-lm-adapt",
+        "google/mt5-small",
+        "google/mt5-base",
     ],
     index=1
 )
