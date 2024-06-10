@@ -7,5 +7,3 @@ psutil
 sentencepiece
 matplotlib
 requests
-bitsandbytes
-accelerate
