@@ -1,5 +1,5 @@
 import streamlit as st
-from transformers import T5ForConditionalGeneration, T5Tokenizer
+from transformers import T5ForConditionalGeneration, T5Tokenizer, GPT2LMHeadModel, GPT2Tokenizer
 from sentence_transformers import SentenceTransformer, util
 import psutil
 import os
