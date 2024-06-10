@@ -65,11 +65,11 @@ model_memory_usage = memory_usage()
 
 # Function to find the most relevant crop context based on the question
 @st.cache_data
-def find_relevant_crop_context(question, crop_embeddings):
+def find_relevant_crop_context(question, _crop_embeddings):
     question_embedding = embedding_model.encode(question, convert_to_tensor=True)
-    cosine_scores = util.pytorch_cos_sim(question_embedding, torch.stack(list(crop_embeddings.values())))
+    cosine_scores = util.pytorch_cos_sim(question_embedding, torch.stack(list(_crop_embeddings.values())))
     best_match_index = torch.argmax(cosine_scores).item()
-    best_match_crop = list(crop_embeddings.keys())[best_match_index]
+    best_match_crop = list(_crop_embeddings.keys())[best_match_index]
     return crop_data[best_match_crop]
 
 # Improved function to automatically determine question type
