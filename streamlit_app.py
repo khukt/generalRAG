@@ -13,8 +13,8 @@ def load_json_database(file_path):
         data = json.load(file)
     return data
 
-# Load data from JSON file
-data = load_json_database('crop_data.json')
+# Load crop data from JSON file
+crop_data = load_json_database('crop_data.json')
 
 # Cache the model and tokenizer to optimize memory usage
 @st.cache_resource
@@ -51,7 +51,7 @@ def generate_embeddings(data):
     context_embeddings = embedding_model.encode(contexts, convert_to_tensor=True)
     return dict(zip(keys, context_embeddings))
 
-embeddings = generate_embeddings(data)
+embeddings = generate_embeddings(crop_data)
 
 # Function to measure memory usage
 def memory_usage():
@@ -69,13 +69,13 @@ def find_relevant_context(question, _embeddings):
     cosine_scores = util.pytorch_cos_sim(question_embedding, torch.stack(list(_embeddings.values())))
     best_match_index = torch.argmax(cosine_scores).item()
     best_match_key = list(_embeddings.keys())[best_match_index]
-    return data[best_match_key]
+    return crop_data[best_match_key]
 
 # Improved function to automatically determine question type
 def determine_question_type(question):
     question = question.lower()
-    if any(keyword in question for keyword in ["how", "grow", "plant", "steps", "step-by-step"]):
-        return "Step-by-Step Guide"
+    if any(keyword in question for keyword in ["how", "grow", "plant", "cultivate"]):
+        return "Planting Guide"
     elif any(keyword in question for keyword in ["issues", "problems", "diseases", "pests"]):
         return "Common Issues"
     elif any(keyword in question for keyword in ["best practices", "tips", "guidelines", "recommendations"]):
@@ -87,7 +87,7 @@ def determine_question_type(question):
     elif any(keyword in question for keyword in ["harvest", "harvesting", "pick", "picking"]):
         return "Harvest Timing"
     else:
-        return "Step-by-Step Guide"  # Default to step-by-step if no keywords match
+        return "Planting Guide"  # Default to planting guide if no keywords match
 
 # Function to load templates
 def load_templates(file_path='templates.json'):
@@ -96,38 +96,38 @@ def load_templates(file_path='templates.json'):
             return json.load(file)
     else:
         return {
-            "Step-by-Step Guide": (
-                "Please provide a detailed, step-by-step guide on how to perform the specified task based on the following question and context.\n\n"
+            "Planting Guide": (
+                "Please provide a detailed guide on how to plant and grow the specified crop based on the following question and context.\n\n"
                 "Question: {question}\n\n"
                 "Context: {context}\n\n"
-                "Steps:"
+                "Guide:"
             ),
             "Common Issues": (
-                "Please provide a detailed explanation of common issues and their solutions for the specified task based on the following question and context.\n\n"
+                "Please provide a detailed explanation of common issues and their solutions for growing the specified crop based on the following question and context.\n\n"
                 "Question: {question}\n\n"
                 "Context: {context}\n\n"
                 "Issues and Solutions:"
             ),
             "Best Practices": (
-                "Please provide a detailed list of best practices for the specified task based on the following question and context.\n\n"
+                "Please provide a detailed list of best practices for growing the specified crop based on the following question and context.\n\n"
                 "Question: {question}\n\n"
                 "Context: {context}\n\n"
                 "Best Practices:"
             ),
             "Watering Schedule": (
-                "Please provide a detailed watering schedule for the specified task based on the following question and context.\n\n"
+                "Please provide a detailed watering schedule for the specified crop based on the following question and context.\n\n"
                 "Question: {question}\n\n"
                 "Context: {context}\n\n"
                 "Watering Schedule:"
             ),
             "Fertilization Tips": (
-                "Please provide detailed fertilization tips for the specified task based on the following question and context.\n\n"
+                "Please provide detailed fertilization tips for the specified crop based on the following question and context.\n\n"
                 "Question: {question}\n\n"
                 "Context: {context}\n\n"
                 "Fertilization Tips:"
             ),
             "Harvest Timing": (
-                "Please provide detailed harvest timing information for the specified task based on the following question and context.\n\n"
+                "Please provide detailed harvest timing information for the specified crop based on the following question and context.\n\n"
                 "Question: {question}\n\n"
                 "Context: {context}\n\n"
                 "Harvest Timing:"
@@ -144,7 +144,7 @@ templates = load_templates()
 
 # Function to generate text based on input question and context
 def generate_paragraph(question_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping):
-    input_text = templates.get(question_type, templates["Step-by-Step Guide"]).format(question=question, context=context)
+    input_text = templates.get(question_type, templates["Planting Guide"]).format(question=question, context=context)
     inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
     
     # Measure memory before generation
@@ -174,18 +174,18 @@ def format_output(output):
     return formatted_output
 
 # Streamlit UI
-st.title("Generalized Data Guide Generator")
+st.title("Crop Growing Guide Generator")
 st.write("Enter your question to generate a detailed guide.")
 
-question = st.text_input("Question", value="How to perform the task?", key="question")
+question = st.text_input("Question", value="How to grow tomatoes?", key="question")
 
 if question:
     relevant_context = find_relevant_context(question, embeddings)
-    context = generate_context("Task", relevant_context)
+    context = generate_context("Crop", relevant_context)
     question_type = determine_question_type(question)
 else:
     context = ""
-    question_type = "Step-by-Step Guide"
+    question_type = "Planting Guide"
 
 st.subheader("Detected Question Type")
 st.write(f"**{question_type}**")
