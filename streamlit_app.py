@@ -64,30 +64,30 @@ def find_relevant_crop_context(question, crop_embeddings):
 def determine_question_type(question):
     question = question.lower()
     if any(keyword in question for keyword in ["how", "grow", "steps", "step-by-step"]):
-        return "step-by-step"
+        return "Step-by-Step Guide"
     elif any(keyword in question for keyword in ["issues", "problems", "diseases", "pests"]):
-        return "common issues"
+        return "Common Issues"
     elif any(keyword in question for keyword in ["best practices", "tips", "guidelines", "recommendations"]):
-        return "best practices"
+        return "Best Practices"
     else:
-        return "step-by-step"  # Default to step-by-step if no keywords match
+        return "Step-by-Step Guide"  # Default to step-by-step if no keywords match
 
 # Function to generate text based on input question and context
 def generate_paragraph(question_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping):
     templates = {
-        "step-by-step": (
+        "Step-by-Step Guide": (
             f"Please provide a detailed, step-by-step guide on how to grow the specified crop based on the following question and context.\n\n"
             f"Question: {question}\n\n"
             f"Context: {context}\n\n"
             f"Steps:"
         ),
-        "common issues": (
+        "Common Issues": (
             f"Please provide a detailed explanation of common issues and their solutions for growing the specified crop based on the following question and context.\n\n"
             f"Question: {question}\n\n"
             f"Context: {context}\n\n"
             f"Issues and Solutions:"
         ),
-        "best practices": (
+        "Best Practices": (
             f"Please provide a detailed list of best practices for growing the specified crop based on the following question and context.\n\n"
             f"Question: {question}\n\n"
             f"Context: {context}\n\n"
@@ -95,7 +95,7 @@ def generate_paragraph(question_type, question, context, max_length, num_beams, 
         )
     }
     
-    input_text = templates.get(question_type, templates["step-by-step"])
+    input_text = templates.get(question_type, templates["Step-by-Step Guide"])
     inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
     
     # Measure memory before generation
@@ -137,9 +137,13 @@ if question:
     question_type = determine_question_type(question)
 else:
     context = ""
-    question_type = "step-by-step"
+    question_type = "Step-by-Step Guide"
 
-st.text_area("Context", value=context, height=200, disabled=True)
+st.subheader("Detected Question Type")
+st.write(f"**{question_type}**")
+
+st.subheader("Context")
+st.markdown(f"```json\n{context}\n```")
 
 # Additional controls for model.generate parameters in the sidebar
 st.sidebar.title("Model Parameters")
