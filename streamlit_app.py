@@ -54,9 +54,9 @@ def generate_context(details):
             elif isinstance(value, dict):
                 value = generate_context(value)  # Recursively handle nested dictionaries
             context.append(f"{key.replace('_', ' ').title()}: {value}")
-        return '\n'.join(context)
+        return {key.replace('_', ' ').title(): value for key, value in details.items()}
     else:
-        return str(details)
+        return {details: details}
 
 # Function to measure memory usage
 def memory_usage():
@@ -90,7 +90,7 @@ def get_template(question_type, template_mapping):
 
 # Function to generate text based on input question and context
 def generate_paragraph(template, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping):
-    input_text = template.format(question=question, context=context)
+    input_text = template.format(question=question, **context)
     inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
     
     # Measure memory before generation
@@ -154,13 +154,13 @@ for line in question_types.split('\n'):
 st.sidebar.subheader("Define templates for question types")
 templates = st.sidebar.text_area(
     "Format: Type: Template",
-    value="Step-by-Step Guide: To grow tomatoes, follow these steps based on the provided context. Planting season: {context['Planting Season']}. Prepare the soil by {context['Soil Preparation']}. Ensure the soil type is {context['Soil Type']}. Water regularly, keeping the soil moist but not waterlogged. Fertilize every {context['Fertilization Schedule']}. Manage pests such as {context['Pests Diseases']} by {context['Pest Management']}. Harvest tomatoes when they are {context['Harvesting Techniques']}.\n"
-          "Common Issues: For growing tomatoes, common issues include {context['Pests Diseases']}. To manage these issues, you can {context['Pest Management']}.\n"
-          "Best Practices: The best practices for growing tomatoes include {context['Fertilization Schedule']}, {context['Soil Preparation']}, and managing pests by {context['Pest Management']}.\n"
-          "Watering Schedule: Watering schedule for tomatoes is {context['Watering Frequency']}.\n"
-          "Fertilization Tips: Fertilize tomatoes every {context['Fertilization Schedule']} with a balanced fertilizer.\n"
-          "Harvest Timing: Harvest tomatoes {context['Harvesting Techniques']}.\n"
-          "General Information: Here is some general information about growing tomatoes: Planting season: {context['Planting Season']}, Soil type: {context['Soil Type']}, Harvest time: {context['Harvest Time']}.\n"
+    value="Step-by-Step Guide: To grow tomatoes, follow these steps based on the provided context. Planting season: {Planting Season}. Prepare the soil by {Soil Preparation}. Ensure the soil type is {Soil Type}. Water regularly, keeping the soil moist but not waterlogged. Fertilize every {Fertilization Schedule}. Manage pests such as {Pests Diseases} by {Pest Management}. Harvest tomatoes when they are {Harvesting Techniques}.\n"
+          "Common Issues: For growing tomatoes, common issues include {Pests Diseases}. To manage these issues, you can {Pest Management}.\n"
+          "Best Practices: The best practices for growing tomatoes include {Fertilization Schedule}, {Soil Preparation}, and managing pests by {Pest Management}.\n"
+          "Watering Schedule: Watering schedule for tomatoes is {Watering Frequency}.\n"
+          "Fertilization Tips: Fertilize tomatoes every {Fertilization Schedule} with a balanced fertilizer.\n"
+          "Harvest Timing: Harvest tomatoes {Harvesting Techniques}.\n"
+          "General Information: Here is some general information about growing tomatoes: Planting season: {Planting Season}, Soil type: {Soil Type}, Harvest time: {Harvest Time}.\n"
 )
 
 for line in templates.split('\n'):
