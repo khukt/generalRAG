@@ -13,9 +13,6 @@ def load_json_database(file_path):
         data = json.load(file)
     return data
 
-# Load crop data from JSON file
-crop_data = load_json_database('crop_data.json')
-
 # Cache the model and tokenizer to optimize memory usage
 @st.cache_resource
 def load_model():
@@ -32,27 +29,22 @@ def load_embedding_model():
 embedding_model = load_embedding_model()
 model, tokenizer = load_model()
 
-# Generate embeddings for crop contexts
+# Function to generate embeddings for crop contexts
 @st.cache_resource
 def generate_crop_embeddings(crop_data):
     embeddings = {}
     for crop, details in crop_data.items():
-        context = f"""
-        Crop Name: {details.get('name', 'N/A')}
-        Planting Season: {details.get('planting_season', 'N/A')}
-        Harvest Time: {details.get('harvest_time', 'N/A')}
-        Soil Type: {details.get('soil_type', 'N/A')}
-        Soil Preparation: {details.get('soil_preparation', 'N/A')}
-        Watering Frequency: {details.get('watering_frequency', 'N/A')}
-        Fertilization Schedule: {details.get('fertilization_schedule', 'N/A')}
-        Pests and Diseases: {', '.join(details.get('pests_diseases', []))}
-        Pest Management: {details.get('pest_management', 'N/A')}
-        Harvesting Techniques: {details.get('harvesting_techniques', 'N/A')}
-        """
+        context = generate_context(details)
         embeddings[crop] = embedding_model.encode(context, convert_to_tensor=True)
     return embeddings
 
-crop_embeddings = generate_crop_embeddings(crop_data)
+def generate_context(details):
+    context = []
+    for key, value in details.items():
+        if isinstance(value, list):
+            value = ', '.join(value)
+        context.append(f"{key.replace('_', ' ').title()}: {value}")
+    return '\n'.join(context)
 
 # Function to measure memory usage
 def memory_usage():
@@ -72,7 +64,7 @@ def find_relevant_crop_context(question, _crop_embeddings):
     best_match_crop = list(_crop_embeddings.keys())[best_match_index]
     return crop_data[best_match_crop]
 
-# Improved function to automatically determine question type
+# Function to determine question type
 def determine_question_type(question):
     question = question.lower()
     if any(keyword in question for keyword in ["how", "grow", "plant", "steps", "step-by-step"]):
@@ -165,21 +157,15 @@ st.title("Crop Growing Guide Generator")
 st.write("Enter your question to generate a detailed guide.")
 
 question = st.text_input("Question", value="How to grow tomatoes?", key="question")
+file_path = st.sidebar.file_uploader("Upload JSON database", type=["json"])
 
-if question:
+if file_path:
+    crop_data = load_json_database(file_path)
+    crop_embeddings = generate_crop_embeddings(crop_data)
+
+if question and crop_data:
     relevant_context = find_relevant_crop_context(question, crop_embeddings)
-    context = f"""
-    Crop Name: {relevant_context.get('name', 'N/A')}
-    Planting Season: {relevant_context.get('planting_season', 'N/A')}
-    Harvest Time: {relevant_context.get('harvest_time', 'N/A')}
-    Soil Type: {relevant_context.get('soil_type', 'N/A')}
-    Soil Preparation: {relevant_context.get('soil_preparation', 'N/A')}
-    Watering Frequency: {relevant_context.get('watering_frequency', 'N/A')}
-    Fertilization Schedule: {relevant_context.get('fertilization_schedule', 'N/A')}
-    Pests and Diseases: {', '.join(relevant_context.get('pests_diseases', []))}
-    Pest Management: {relevant_context.get('pest_management', 'N/A')}
-    Harvesting Techniques: {relevant_context.get('harvesting_techniques', 'N/A')}
-    """
+    context = generate_context(relevant_context)
     question_type = determine_question_type(question)
 else:
     context = ""
@@ -198,7 +184,7 @@ num_beams = st.sidebar.slider("Number of Beams", 1, 10, 5)
 no_repeat_ngram_size = st.sidebar.slider("No Repeat N-Gram Size", 1, 10, 2)
 early_stopping = st.sidebar.checkbox("Early Stopping", value=True)
 
-if question:
+if question and crop_data:
     with st.spinner("Generating..."):
         guide, memory_footprint = generate_paragraph(question_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping)
     st.subheader("Generated Guide")
