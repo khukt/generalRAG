@@ -7,7 +7,7 @@ import requests
 # Cache the model and tokenizer to optimize memory usage
 @st.cache_resource
 def load_model():
-    model_name = "google/flan-t5-base"
+    model_name = "t5-small"  # Using t5-small as an example, ensure this model is available
     model = T5ForConditionalGeneration.from_pretrained(model_name)
     tokenizer = T5Tokenizer.from_pretrained(model_name)
     return model, tokenizer
@@ -79,7 +79,13 @@ def format_output(output):
 def fetch_faostat_data(crop):
     url = f"http://fenixservices.fao.org/faostat/api/v1/en/data/QC?&filter=contains&item={crop}&format=json"
     response = requests.get(url)
-    data = response.json()
+    if response.status_code == 200:
+        try:
+            data = response.json()
+        except ValueError:
+            data = {"error": "Invalid JSON response"}
+    else:
+        data = {"error": f"HTTP Error {response.status_code}"}
     return data
 
 # Streamlit UI
