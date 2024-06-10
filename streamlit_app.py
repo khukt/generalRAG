@@ -1,8 +1,10 @@
 import streamlit as st
 from transformers import T5ForConditionalGeneration, T5Tokenizer
+from sentence_transformers import SentenceTransformer, util
 import psutil
 import os
 import json
+import torch
 
 # Load JSON database
 @st.cache_resource
@@ -22,7 +24,24 @@ def load_model():
     tokenizer = T5Tokenizer.from_pretrained(model_name)
     return model, tokenizer
 
+# Load embedding model
+@st.cache_resource
+def load_embedding_model():
+    return SentenceTransformer('all-MiniLM-L6-v2')
+
+embedding_model = load_embedding_model()
 model, tokenizer = load_model()
+
+# Generate embeddings for crop contexts
+@st.cache_resource
+def generate_crop_embeddings(crop_data):
+    embeddings = {}
+    for crop, details in crop_data.items():
+        context = json.dumps(details, indent=4)
+        embeddings[crop] = embedding_model.encode(context, convert_to_tensor=True)
+    return embeddings
+
+crop_embeddings = generate_crop_embeddings(crop_data)
 
 # Function to measure memory usage
 def memory_usage():
@@ -32,6 +51,14 @@ def memory_usage():
 
 # Measure memory usage after loading the model
 model_memory_usage = memory_usage()
+
+# Function to find the most relevant crop context based on the question
+def find_relevant_crop_context(question, crop_embeddings):
+    question_embedding = embedding_model.encode(question, convert_to_tensor=True)
+    cosine_scores = util.pytorch_cos_sim(question_embedding, torch.stack(list(crop_embeddings.values())))
+    best_match_index = torch.argmax(cosine_scores).item()
+    best_match_crop = list(crop_embeddings.keys())[best_match_index]
+    return crop_data[best_match_crop]
 
 # Function to generate text based on input question and context
 def generate_paragraph(question_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping):
@@ -93,7 +120,10 @@ crop_choice = st.selectbox("Select Crop", list(crop_data.keys()))
 
 question_type = st.selectbox("Select Question Type", ["step-by-step", "common issues", "best practices"])
 question = st.text_input("Question", value=f"How to grow {crop_choice.lower()}?")
-context = st.text_area("Context", value=json.dumps(crop_data[crop_choice], indent=4))
+
+# Retrieve the most relevant context based on the question
+relevant_context = find_relevant_crop_context(question, crop_embeddings)
+context = st.text_area("Context", value=json.dumps(relevant_context, indent=4))
 
 # Additional controls for model.generate parameters in the sidebar
 st.sidebar.title("Model Parameters")
