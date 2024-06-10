@@ -2,6 +2,17 @@ import streamlit as st
 from transformers import T5ForConditionalGeneration, T5Tokenizer
 import psutil
 import os
+import json
+
+# Load JSON database
+@st.cache_resource
+def load_json_database(file_path):
+    with open(file_path, 'r') as file:
+        data = json.load(file)
+    return data
+
+# Load crop data from JSON file
+crop_data = load_json_database('crop_data.json')
 
 # Cache the model and tokenizer to optimize memory usage
 @st.cache_resource
@@ -78,30 +89,11 @@ def format_output(output):
 st.title("Crop Growing Guide Generator")
 st.write("Select a crop, question type, and enter your question and context to generate a detailed guide.")
 
-crop_choice = st.selectbox("Select Crop", ["Tomato", "Corn"])
-
-crop_contexts = {
-    "Tomato": """
-        Crop Name: Tomato
-        Planting Season: Spring
-        Harvest Time: Summer
-        Soil Type: Well-drained, fertile soil
-        Watering Needs: Regular watering, keep soil moist but not waterlogged
-        Pests and Diseases: Aphids, Blight, Tomato Hornworm
-    """,
-    "Corn": """
-        Crop Name: Corn
-        Planting Season: Late Spring
-        Harvest Time: Late Summer to Early Fall
-        Soil Type: Well-drained, loamy soil
-        Watering Needs: Moderate watering, keep soil moist especially during tasseling and ear development
-        Pests and Diseases: Corn Earworm, Rootworm, Corn Smut
-    """
-}
+crop_choice = st.selectbox("Select Crop", list(crop_data.keys()))
 
 question_type = st.selectbox("Select Question Type", ["step-by-step", "common issues", "best practices"])
 question = st.text_input("Question", value=f"How to grow {crop_choice.lower()}?")
-context = st.text_area("Context", value=crop_contexts[crop_choice])
+context = st.text_area("Context", value=json.dumps(crop_data[crop_choice], indent=4))
 
 # Additional controls for model.generate parameters in the sidebar
 st.sidebar.title("Model Parameters")
@@ -125,36 +117,3 @@ if st.button("Generate Guide"):
     st.write(f"Memory used during generation: {memory_footprint:.2f} MB")
     st.write(f"Other memory usage: {other_memory_usage:.2f} MB")
     st.write(f"Total memory usage: {total_memory_usage:.2f} MB")
-
-# Cache resource decorator for efficient reloading
-@st.cache_resource
-def get_crop_details(crop_name):
-    if crop_name == "Tomato":
-        return {
-            'name': 'Tomato',
-            'planting_season': 'Spring',
-            'harvest_time': 'Summer',
-            'soil_type': 'Well-drained, fertile soil',
-            'watering_needs': 'Regular watering, keep soil moist but not waterlogged',
-            'pests_diseases': ['Aphids', 'Blight', 'Tomato Hornworm']
-        }
-    else:
-        return {
-            'name': 'Corn',
-            'planting_season': 'Late Spring',
-            'harvest_time': 'Late Summer to Early Fall',
-            'soil_type': 'Well-drained, loamy soil',
-            'watering_needs': 'Moderate watering, keep soil moist especially during tasseling and ear development',
-            'pests_diseases': ['Corn Earworm', 'Rootworm', 'Corn Smut']
-        }
-
-crop_details = get_crop_details(crop_choice)
-crop_text = (
-    f"Crop Name: {crop_details['name']}\n"
-    f"Planting Season: {crop_details['planting_season']}\n"
-    f"Harvest Time: {crop_details['harvest_time']}\n"
-    f"Soil Type: {crop_details['soil_type']}\n"
-    f"Watering Needs: {crop_details['watering_needs']}\n"
-    f"Pests and Diseases: {', '.join(crop_details['pests_diseases'])}\n"
-)
-st.write(crop_text)
