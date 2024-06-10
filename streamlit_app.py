@@ -14,23 +14,22 @@ def load_json_database(file_path):
     return data
 
 # Load crop data from JSON file
-crop_data = load_json_database('crop_data.json')
+@st.cache_resource
+def get_crop_data():
+    return load_json_database('crop_data.json')
 
 # Cache the model and tokenizer to optimize memory usage
 @st.cache_resource
 def load_model():
     model_name = "google/flan-t5-base"
     model = T5ForConditionalGeneration.from_pretrained(model_name)
-    tokenizer = T5Tokenizer.from_pretrained(model_name, legacy=False)  # Set legacy to False
+    tokenizer = T5Tokenizer.from_pretrained(model_name, legacy=False)
     return model, tokenizer
 
 # Load embedding model
 @st.cache_resource
 def load_embedding_model():
     return SentenceTransformer('all-MiniLM-L6-v2')
-
-embedding_model = load_embedding_model()
-model, tokenizer = load_model()
 
 # General function to generate context from details
 def generate_context(key, details):
@@ -50,8 +49,6 @@ def generate_embeddings(data):
     contexts = [generate_context(key, data[key]) for key in keys]
     context_embeddings = embedding_model.encode(contexts, convert_to_tensor=True)
     return dict(zip(keys, context_embeddings))
-
-embeddings = generate_embeddings(crop_data)
 
 # Function to measure memory usage
 def memory_usage():
@@ -90,6 +87,7 @@ def determine_question_type(question):
         return "Planting Guide"  # Default to planting guide if no keywords match
 
 # Function to load templates
+@st.cache_resource
 def load_templates(file_path='templates.json'):
     if os.path.exists(file_path):
         with open(file_path, 'r') as file:
@@ -177,7 +175,28 @@ def format_output(output):
 st.title("Crop Growing Guide Generator")
 st.write("Enter your question to generate a detailed guide.")
 
+# Buttons to clear cache and reload models, embeddings, and templates
+if st.button("Clear Cache and Reload Models"):
+    load_model.clear()
+    load_embedding_model.clear()
+    generate_embeddings.clear()
+    st.experimental_rerun()
+
+if st.button("Clear Cache and Reload Data"):
+    get_crop_data.clear()
+    generate_embeddings.clear()
+    st.experimental_rerun()
+
+if st.button("Clear Cache and Reload Templates"):
+    load_templates.clear()
+    st.experimental_rerun()
+
 question = st.text_input("Question", value="How to grow tomatoes?", key="question")
+
+crop_data = get_crop_data()
+embedding_model = load_embedding_model()
+model, tokenizer = load_model()
+embeddings = generate_embeddings(crop_data)
 
 if question:
     relevant_context = find_relevant_context(question, embeddings)
