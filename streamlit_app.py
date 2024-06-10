@@ -21,9 +21,16 @@ def get_crop_data():
 # Cache the model and tokenizer to optimize memory usage
 @st.cache_resource
 def load_model(model_name):
-    model = T5ForConditionalGeneration.from_pretrained(model_name)
-    tokenizer = T5Tokenizer.from_pretrained(model_name, legacy=False)
+    if "t5" in model_name or "flan" in model_name:
+        model = T5ForConditionalGeneration.from_pretrained(model_name)
+        tokenizer = T5Tokenizer.from_pretrained(model_name, legacy=False)
+    elif "gpt2" in model_name:
+        model = GPT2LMHeadModel.from_pretrained(model_name)
+        tokenizer = GPT2Tokenizer.from_pretrained(model_name)
+    else:
+        raise ValueError(f"Model {model_name} is not supported.")
     return model, tokenizer
+
 
 # Load embedding model
 @st.cache_resource
