@@ -142,7 +142,7 @@ def load_templates(file_path='templates.json'):
 
 # Function to save templates
 def save_templates(templates, file_path='templates.json'):
-    with open(file_path, 'w') as file):
+    with open((file_path, 'w') as file):
         json.dump(templates, file, indent=4)
 
 # Load existing templates or default ones
