@@ -37,7 +37,18 @@ model, tokenizer = load_model()
 def generate_crop_embeddings(crop_data):
     embeddings = {}
     for crop, details in crop_data.items():
-        context = json.dumps(details, indent=4)
+        context = f"""
+        Crop Name: {details.get('name', 'N/A')}
+        Planting Season: {details.get('planting_season', 'N/A')}
+        Harvest Time: {details.get('harvest_time', 'N/A')}
+        Soil Type: {details.get('soil_type', 'N/A')}
+        Soil Preparation: {details.get('soil_preparation', 'N/A')}
+        Watering Frequency: {details.get('watering_frequency', 'N/A')}
+        Fertilization Schedule: {details.get('fertilization_schedule', 'N/A')}
+        Pests and Diseases: {', '.join(details.get('pests_diseases', []))}
+        Pest Management: {details.get('pest_management', 'N/A')}
+        Harvesting Techniques: {details.get('harvesting_techniques', 'N/A')}
+        """
         embeddings[crop] = embedding_model.encode(context, convert_to_tensor=True)
     return embeddings
 
