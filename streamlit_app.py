@@ -154,13 +154,13 @@ for line in question_types.split('\n'):
 st.sidebar.subheader("Define templates for question types")
 templates = st.sidebar.text_area(
     "Format: Type: Template",
-    value="Step-by-Step Guide: Please provide a detailed, step-by-step guide on how to process the specified data based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nSteps:\n"
-          "Common Issues: Please provide a detailed explanation of common issues and their solutions for the specified data based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nIssues and Solutions:\n"
-          "Best Practices: Please provide a detailed list of best practices for the specified data based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nBest Practices:\n"
-          "Watering Schedule: Please provide a detailed watering schedule for the specified data based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nWatering Schedule:\n"
-          "Fertilization Tips: Please provide detailed fertilization tips for the specified data based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nFertilization Tips:\n"
-          "Harvest Timing: Please provide detailed harvest timing information for the specified data based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nHarvest Timing:\n"
-          "General Information: Please provide general information about the specified data based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nInformation:\n"
+    value="Step-by-Step Guide: Please provide a detailed, step-by-step guide on how to grow the specified crop based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nSteps:\n"
+          "Common Issues: Please provide a detailed explanation of common issues and their solutions for growing the specified crop based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nIssues and Solutions:\n"
+          "Best Practices: Please provide a detailed list of best practices for growing the specified crop based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nBest Practices:\n"
+          "Watering Schedule: Please provide a detailed watering schedule for the specified crop based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nWatering Schedule:\n"
+          "Fertilization Tips: Please provide detailed fertilization tips for the specified crop based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nFertilization Tips:\n"
+          "Harvest Timing: Please provide detailed harvest timing information for the specified crop based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nHarvest Timing:\n"
+          "General Information: Please provide general information about the specified crop based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nInformation:\n"
 )
 
 for line in templates.split('\n'):
