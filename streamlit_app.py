@@ -5,6 +5,7 @@ import psutil
 import os
 import json
 import torch
+import gc
 
 # Load JSON database
 @st.cache_resource
@@ -18,9 +19,18 @@ def load_json_database(file_path):
 def get_crop_data():
     return load_json_database('crop_data.json')
 
+# Function to clear previous model from memory
+def clear_model_from_memory():
+    if "model" in st.session_state:
+        del st.session_state.model
+    if "tokenizer" in st.session_state:
+        del st.session_state.tokenizer
+    gc.collect()
+
 # Cache the model and tokenizer to optimize memory usage
 @st.cache_resource
 def load_model(model_name):
+    clear_model_from_memory()
     if "t5" in model_name or "flan" in model_name:
         model = T5ForConditionalGeneration.from_pretrained(model_name)
         tokenizer = T5Tokenizer.from_pretrained(model_name, legacy=False)
@@ -29,6 +39,8 @@ def load_model(model_name):
         tokenizer = GPT2Tokenizer.from_pretrained(model_name)
     else:
         raise ValueError(f"Model {model_name} is not supported.")
+    st.session_state.model = model
+    st.session_state.tokenizer = tokenizer
     return model, tokenizer
 
 
