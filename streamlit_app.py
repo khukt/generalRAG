@@ -22,11 +22,7 @@ def get_crop_data():
 @st.cache_resource
 def load_model():
     model_name = "google/flan-t5-base"
-    model = T5ForConditionalGeneration.from_pretrained(
-        model_name, 
-        device_map='auto',
-        load_in_8bit=True
-    )
+    model = T5ForConditionalGeneration.from_pretrained(model_name)
     tokenizer = T5Tokenizer.from_pretrained(model_name, legacy=False)
     return model, tokenizer
 
@@ -146,7 +142,7 @@ def load_templates(file_path='templates.json'):
 
 # Function to save templates
 def save_templates(templates, file_path='templates.json'):
-    with open(file_path, 'w') as file:
+    with open(file_path, 'w') as file):
         json.dump(templates, file, indent=4)
 
 # Load existing templates or default ones
