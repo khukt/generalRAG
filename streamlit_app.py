@@ -71,10 +71,10 @@ def find_relevant_crop_context(question, crop_embeddings):
     best_match_crop = list(crop_embeddings.keys())[best_match_index]
     return crop_data[best_match_crop]
 
-# Function to automatically determine question type
+# Improved function to automatically determine question type
 def determine_question_type(question):
     question = question.lower()
-    if any(keyword in question for keyword in ["how", "grow", "steps", "step-by-step"]):
+    if any(keyword in question for keyword in ["how", "grow", "plant", "steps", "step-by-step"]):
         return "Step-by-Step Guide"
     elif any(keyword in question for keyword in ["issues", "problems", "diseases", "pests"]):
         return "Common Issues"
