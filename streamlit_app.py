@@ -2,12 +2,11 @@ import streamlit as st
 from transformers import T5ForConditionalGeneration, T5Tokenizer
 import psutil
 import os
-import requests
 
 # Cache the model and tokenizer to optimize memory usage
 @st.cache_resource
 def load_model():
-    model_name = "t5-small"  # Using t5-small as an example, ensure this model is available
+    model_name = "google/flan-t5-base"
     model = T5ForConditionalGeneration.from_pretrained(model_name)
     tokenizer = T5Tokenizer.from_pretrained(model_name)
     return model, tokenizer
@@ -75,29 +74,11 @@ def format_output(output):
         formatted_output += '.'
     return formatted_output
 
-# Function to fetch data from FAOSTAT API
-def fetch_faostat_data(crop):
-    url = f"http://fenixservices.fao.org/faostat/api/v1/en/data/QC?&filter=contains&item={crop}&format=json"
-    response = requests.get(url)
-    if response.status_code == 200:
-        try:
-            data = response.json()
-        except ValueError:
-            data = {"error": "Invalid JSON response"}
-    else:
-        data = {"error": f"HTTP Error {response.status_code}"}
-    return data
-
 # Streamlit UI
 st.title("Crop Growing Guide Generator")
 st.write("Select a crop, question type, and enter your question and context to generate a detailed guide.")
 
 crop_choice = st.selectbox("Select Crop", ["Tomato", "Corn"])
-
-# Fetch data from FAOSTAT API
-faostat_data = fetch_faostat_data(crop_choice)
-st.write(f"FAOSTAT Data for {crop_choice}:")
-st.json(faostat_data)
 
 crop_contexts = {
     "Tomato": """
