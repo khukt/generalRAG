@@ -183,8 +183,8 @@ st.markdown(f"```{context}```")
 
 # Additional controls for model.generate parameters in the sidebar
 st.sidebar.title("Model Parameters")
-max_length = st.sidebar.slider("Max Length", 50, 500, 300)
-num_beams = st.sidebar.slider("Number of Beams", 1, 10, 5)
+max_length = st.sidebar.slider("Max Length", 50, 500, 150)  # Reduced max_length
+num_beams = st.sidebar.slider("Number of Beams", 1, 10, 3)  # Reduced num_beams
 no_repeat_ngram_size = st.sidebar.slider("No Repeat N-Gram Size", 1, 10, 2)
 early_stopping = st.sidebar.checkbox("Early Stopping", value=True)
 
