@@ -8,13 +8,9 @@ import torch
 
 # Load JSON database
 @st.cache_resource
-def load_json_database(file_path):
-    with open(file_path, 'r') as file:
-        data = json.load(file)
+def load_json_database(file):
+    data = json.load(file)
     return data
-
-# Load crop data from JSON file
-crop_data = load_json_database('crop_data.json')
 
 # Cache the model and tokenizer to optimize memory usage
 @st.cache_resource
@@ -32,13 +28,13 @@ def load_embedding_model():
 embedding_model = load_embedding_model()
 model, tokenizer = load_model()
 
-# Function to generate embeddings for crop contexts
+# Function to generate embeddings for data contexts
 @st.cache_resource
-def generate_crop_embeddings(crop_data):
+def generate_embeddings(data):
     embeddings = {}
-    for crop, details in crop_data.items():
+    for key, details in data.items():
         context = generate_context(details)
-        embeddings[crop] = embedding_model.encode(context, convert_to_tensor=True)
+        embeddings[key] = embedding_model.encode(context, convert_to_tensor=True)
     return embeddings
 
 # Function to generate context from details
@@ -47,7 +43,7 @@ def generate_context(details):
         context = []
         for key, value in details.items():
             if isinstance(value, list):
-                value = ', '.join(value)
+                value = ', '.join(map(str, value))
             elif isinstance(value, dict):
                 value = generate_context(value)  # Recursively handle nested dictionaries
             context.append(f"{key.replace('_', ' ').title()}: {value}")
@@ -64,47 +60,29 @@ def memory_usage():
 # Measure memory usage after loading the model
 model_memory_usage = memory_usage()
 
-# Function to find the most relevant crop context based on the question
+# Function to find the most relevant context based on the question
 @st.cache_data
-def find_relevant_crop_context(question, _crop_embeddings):
+def find_relevant_context(question, _embeddings):
     question_embedding = embedding_model.encode(question, convert_to_tensor=True)
-    cosine_scores = util.pytorch_cos_sim(question_embedding, torch.stack(list(_crop_embeddings.values())))
+    cosine_scores = util.pytorch_cos_sim(question_embedding, torch.stack(list(_embeddings.values())))
     best_match_index = torch.argmax(cosine_scores).item()
-    best_match_crop = list(_crop_embeddings.keys())[best_match_index]
-    return crop_data[best_match_crop]
+    best_match_key = list(_embeddings.keys())[best_match_index]
+    return data[best_match_key]
 
 # Function to determine question type
-def determine_question_type(question):
-    keyword_mapping = {
-        "Step-by-Step Guide": ["how", "grow", "plant", "steps", "step-by-step"],
-        "Common Issues": ["issues", "problems", "diseases", "pests"],
-        "Best Practices": ["best practices", "tips", "guidelines", "recommendations"],
-        "Watering Schedule": ["watering", "irrigation", "water schedule"],
-        "Fertilization Tips": ["fertilization", "fertilizer", "feeding", "nutrition"],
-        "Harvest Timing": ["harvest", "harvesting", "pick", "picking"]
-    }
-    
+def determine_question_type(question, keyword_mapping):
     question = question.lower()
     for question_type, keywords in keyword_mapping.items():
         if any(keyword in question for keyword in keywords):
             return question_type
-    return "Step-by-Step Guide"  # Default to step-by-step if no keywords match
+    return "General Information"  # Default if no keywords match
 
 # Function to get the template for the given question type
-def get_template(question_type):
-    templates = {
-        "Step-by-Step Guide": "Please provide a detailed, step-by-step guide on how to grow the specified crop based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nSteps:",
-        "Common Issues": "Please provide a detailed explanation of common issues and their solutions for growing the specified crop based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nIssues and Solutions:",
-        "Best Practices": "Please provide a detailed list of best practices for growing the specified crop based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nBest Practices:",
-        "Watering Schedule": "Please provide a detailed watering schedule for the specified crop based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nWatering Schedule:",
-        "Fertilization Tips": "Please provide detailed fertilization tips for the specified crop based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nFertilization Tips:",
-        "Harvest Timing": "Please provide detailed harvest timing information for the specified crop based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nHarvest Timing:",
-    }
-    return templates.get(question_type, templates["Step-by-Step Guide"])
+def get_template(question_type, template_mapping):
+    return template_mapping.get(question_type, template_mapping["General Information"])
 
 # Function to generate text based on input question and context
-def generate_paragraph(question_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping):
-    template = get_template(question_type)
+def generate_paragraph(template, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping):
     input_text = template.format(question=question, context=context)
     inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
     
@@ -135,45 +113,86 @@ def format_output(output):
     return formatted_output
 
 # Streamlit UI
-st.title("Crop Growing Guide Generator")
-st.write("Enter your question to generate a detailed guide.")
+st.title("Generalized Data Guide Generator")
+st.write("Upload your JSON data and enter your question to generate a detailed guide.")
 
-question = st.text_input("Question", value="How to grow tomatoes?", key="question")
+uploaded_file = st.file_uploader("Upload JSON file", type="json")
 
-if question:
-    crop_embeddings = generate_crop_embeddings(crop_data)
-    relevant_context = find_relevant_crop_context(question, crop_embeddings)
-    context = generate_context(relevant_context)
-    question_type = determine_question_type(question)
-else:
-    context = ""
-    question_type = "Step-by-Step Guide"
-
-st.subheader("Detected Question Type")
-st.write(f"**{question_type}**")
-
-st.subheader("Context")
-st.markdown(f"```{context}```")
-
-# Additional controls for model.generate parameters in the sidebar
-st.sidebar.title("Model Parameters")
-max_length = st.sidebar.slider("Max Length", 50, 500, 300)
-num_beams = st.sidebar.slider("Number of Beams", 1, 10, 5)
-no_repeat_ngram_size = st.sidebar.slider("No Repeat N-Gram Size", 1, 10, 2)
-early_stopping = st.sidebar.checkbox("Early Stopping", value=True)
-
-if question:
-    with st.spinner("Generating..."):
-        guide, memory_footprint = generate_paragraph(question_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping)
-    st.subheader("Generated Guide")
-    st.write(guide)
+if uploaded_file:
+    data = load_json_database(uploaded_file)
+    embeddings = generate_embeddings(data)
     
-    # Calculate total memory usage and other memory usage
-    total_memory_usage = memory_usage()
-    other_memory_usage = total_memory_usage - model_memory_usage - memory_footprint
+    question = st.text_input("Question", value="How to process this data?", key="question")
     
-    st.subheader("Memory Usage Details")
-    st.write(f"Model memory usage: {model_memory_usage:.2f} MB")
-    st.write(f"Memory used during generation: {memory_footprint:.2f} MB")
-    st.write(f"Other memory usage: {other_memory_usage:.2f} MB")
-    st.write(f"Total memory usage: {total_memory_usage:.2f} MB")
+    st.sidebar.title("Keyword and Template Configuration")
+    
+    # User-defined keyword and template mappings
+    keyword_mapping = {}
+    template_mapping = {}
+    
+    # Input for keyword and template mappings
+    question_types = st.sidebar.text_area("Define question types and keywords (format: Type: keyword1, keyword2, ...)", 
+                                          value="Step-by-Step Guide: how, steps, process, guide\n"
+                                                "Common Issues: issues, problems, errors, troubleshoot\n"
+                                                "Best Practices: best practices, tips, recommendations, guidelines\n"
+                                                "Watering Schedule: watering, irrigation, water schedule\n"
+                                                "Fertilization Tips: fertilization, fertilizer, feeding, nutrition\n"
+                                                "Harvest Timing: harvest, timing, pick, picking\n"
+                                                "General Information: information, details, overview")
+
+    for line in question_types.split('\n'):
+        if line.strip():
+            q_type, keywords = line.split(':')
+            keyword_mapping[q_type.strip()] = [k.strip() for k in keywords.split(',')]
+    
+    templates = st.sidebar.text_area("Define templates for question types (format: Type: Template)", 
+                                     value="Step-by-Step Guide: Please provide a detailed, step-by-step guide on how to process the specified data based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nSteps:\n"
+                                           "Common Issues: Please provide a detailed explanation of common issues and their solutions for the specified data based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nIssues and Solutions:\n"
+                                           "Best Practices: Please provide a detailed list of best practices for the specified data based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nBest Practices:\n"
+                                           "Watering Schedule: Please provide a detailed watering schedule for the specified data based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nWatering Schedule:\n"
+                                           "Fertilization Tips: Please provide detailed fertilization tips for the specified data based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nFertilization Tips:\n"
+                                           "Harvest Timing: Please provide detailed harvest timing information for the specified data based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nHarvest Timing:\n"
+                                           "General Information: Please provide general information about the specified data based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nInformation:\n")
+
+    for line in templates.split('\n'):
+        if line.strip():
+            q_type, template = line.split(':', 1)
+            template_mapping[q_type.strip()] = template.strip()
+
+    if question:
+        relevant_context = find_relevant_context(question, embeddings)
+        context = generate_context(relevant_context)
+        question_type = determine_question_type(question, keyword_mapping)
+    else:
+        context = ""
+        question_type = "General Information"
+
+    st.subheader("Detected Question Type")
+    st.write(f"**{question_type}**")
+
+    st.subheader("Context")
+    st.markdown(f"```{context}```")
+
+    # Additional controls for model.generate parameters in the sidebar
+    st.sidebar.title("Model Parameters")
+    max_length = st.sidebar.slider("Max Length", 50, 500, 300)
+    num_beams = st.sidebar.slider("Number of Beams", 1, 10, 5)
+    no_repeat_ngram_size = st.sidebar.slider("No Repeat N-Gram Size", 1, 10, 2)
+    early_stopping = st.sidebar.checkbox("Early Stopping", value=True)
+
+    if question:
+        with st.spinner("Generating..."):
+            template = get_template(question_type, template_mapping)
+            guide, memory_footprint = generate_paragraph(template, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping)
+        st.subheader("Generated Guide")
+        st.write(guide)
+        
+        # Calculate total memory usage and other memory usage
+        total_memory_usage = memory_usage()
+        other_memory_usage = total_memory_usage - model_memory_usage - memory_footprint
+        
+        st.subheader("Memory Usage Details")
+        st.write(f"Model memory usage: {model_memory_usage:.2f} MB")
+        st.write(f"Memory used during generation: {memory_footprint:.2f} MB")
+        st.write(f"Other memory usage: {other_memory_usage:.2f} MB")
+        st.write(f"Total memory usage: {total_memory_usage:.2f} MB")
