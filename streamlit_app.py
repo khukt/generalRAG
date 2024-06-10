@@ -13,6 +13,9 @@ def load_json_database(file_path):
         data = json.load(file)
     return data
 
+# Load crop data from JSON file
+crop_data = load_json_database('crop_data.json')
+
 # Cache the model and tokenizer to optimize memory usage
 @st.cache_resource
 def load_model():
@@ -157,16 +160,9 @@ st.title("Crop Growing Guide Generator")
 st.write("Enter your question to generate a detailed guide.")
 
 question = st.text_input("Question", value="How to grow tomatoes?", key="question")
-file_path = st.sidebar.file_uploader("Upload JSON database", type=["json"])
 
-if file_path:
-    crop_data = load_json_database(file_path)
+if question:
     crop_embeddings = generate_crop_embeddings(crop_data)
-else:
-    crop_data = None
-    crop_embeddings = None
-
-if question and crop_data:
     relevant_context = find_relevant_crop_context(question, crop_embeddings)
     context = generate_context(relevant_context)
     question_type = determine_question_type(question)
@@ -187,7 +183,7 @@ num_beams = st.sidebar.slider("Number of Beams", 1, 10, 5)
 no_repeat_ngram_size = st.sidebar.slider("No Repeat N-Gram Size", 1, 10, 2)
 early_stopping = st.sidebar.checkbox("Early Stopping", value=True)
 
-if question and crop_data:
+if question:
     with st.spinner("Generating..."):
         guide, memory_footprint = generate_paragraph(question_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping)
     st.subheader("Generated Guide")
