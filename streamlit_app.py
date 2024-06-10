@@ -69,21 +69,20 @@ def find_relevant_crop_context(question, _crop_embeddings):
 
 # Function to determine question type
 def determine_question_type(question):
+    keyword_mapping = {
+        "Step-by-Step Guide": ["how", "grow", "plant", "steps", "step-by-step"],
+        "Common Issues": ["issues", "problems", "diseases", "pests"],
+        "Best Practices": ["best practices", "tips", "guidelines", "recommendations"],
+        "Watering Schedule": ["watering", "irrigation", "water schedule"],
+        "Fertilization Tips": ["fertilization", "fertilizer", "feeding", "nutrition"],
+        "Harvest Timing": ["harvest", "harvesting", "pick", "picking"]
+    }
+    
     question = question.lower()
-    if any(keyword in question for keyword in ["how", "grow", "plant", "steps", "step-by-step"]):
-        return "Step-by-Step Guide"
-    elif any(keyword in question for keyword in ["issues", "problems", "diseases", "pests"]):
-        return "Common Issues"
-    elif any(keyword in question for keyword in ["best practices", "tips", "guidelines", "recommendations"]):
-        return "Best Practices"
-    elif any(keyword in question for keyword in ["watering", "irrigation", "water schedule"]):
-        return "Watering Schedule"
-    elif any(keyword in question for keyword in ["fertilization", "fertilizer", "feeding", "nutrition"]):
-        return "Fertilization Tips"
-    elif any(keyword in question for keyword in ["harvest", "harvesting", "pick", "picking"]):
-        return "Harvest Timing"
-    else:
-        return "Step-by-Step Guide"  # Default to step-by-step if no keywords match
+    for question_type, keywords in keyword_mapping.items():
+        if any(keyword in question for keyword in keywords):
+            return question_type
+    return "Step-by-Step Guide"  # Default to step-by-step if no keywords match
 
 # Function to get the template for the given question type
 def get_template(question_type):
