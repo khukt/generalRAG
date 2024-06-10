@@ -14,7 +14,7 @@ def load_json_database(file_path):
     return data
 
 # Load data from JSON file
-data = load_json_database('crop_data.json')
+data = load_json_database('data.json')
 
 # Cache the model and tokenizer to optimize memory usage
 @st.cache_resource
@@ -32,15 +32,6 @@ def load_embedding_model():
 embedding_model = load_embedding_model()
 model, tokenizer = load_model()
 
-# Generate embeddings for contexts
-@st.cache_resource
-def generate_embeddings(data):
-    embeddings = {}
-    for key, details in data.items():
-        context = generate_context(key, details)
-        embeddings[key] = embedding_model.encode(context, convert_to_tensor=True)
-    return embeddings
-
 # General function to generate context from details
 def generate_context(key, details):
     context_lines = [f"{key.capitalize()}:"]
@@ -51,6 +42,14 @@ def generate_context(key, details):
             v = generate_context(k, v)  # Recursively handle nested dictionaries
         context_lines.append(f"{k.replace('_', ' ').title()}: {v}")
     return '\n'.join(context_lines)
+
+# Generate embeddings for contexts in batches
+@st.cache_resource
+def generate_embeddings(data):
+    keys = list(data.keys())
+    contexts = [generate_context(key, data[key]) for key in keys]
+    context_embeddings = embedding_model.encode(contexts, convert_to_tensor=True)
+    return dict(zip(keys, context_embeddings))
 
 embeddings = generate_embeddings(data)
 
@@ -223,6 +222,6 @@ if question:
     
     st.subheader("Memory Usage Details")
     st.write(f"Model memory usage: {model_memory_usage:.2f} MB")
-    st.write(f"Memory used during generation: {memory_footprint:.2f} MB")
-    st.write(f"Other memory usage: {other_memory_usage:.2f} MB")
-    st.write(f"Total memory usage: {total_memory_usage:.2f} MB")
+    st.write(f"Memory used during generation: {memory_footprint:.2f MB")
+    st.write(f"Other memory usage: {other_memory_usage:.2f MB")
+    st.write(f"Total memory usage: {total_memory_usage:.2f MB")
