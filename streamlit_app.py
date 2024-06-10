@@ -103,11 +103,12 @@ question_type = st.selectbox("Select Question Type", ["step-by-step", "common is
 question = st.text_input("Question", value=f"How to grow {crop_choice.lower()}?")
 context = st.text_area("Context", value=crop_contexts[crop_choice])
 
-# Additional controls for model.generate parameters
-max_length = st.slider("Max Length", 50, 500, 300)
-num_beams = st.slider("Number of Beams", 1, 10, 5)
-no_repeat_ngram_size = st.slider("No Repeat N-Gram Size", 1, 10, 2)
-early_stopping = st.checkbox("Early Stopping", value=True)
+# Additional controls for model.generate parameters in the sidebar
+st.sidebar.title("Model Parameters")
+max_length = st.sidebar.slider("Max Length", 50, 500, 300)
+num_beams = st.sidebar.slider("Number of Beams", 1, 10, 5)
+no_repeat_ngram_size = st.sidebar.slider("No Repeat N-Gram Size", 1, 10, 2)
+early_stopping = st.sidebar.checkbox("Early Stopping", value=True)
 
 if st.button("Generate Guide"):
     with st.spinner("Generating..."):
