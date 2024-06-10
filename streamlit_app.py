@@ -41,13 +41,19 @@ def generate_crop_embeddings(crop_data):
         embeddings[crop] = embedding_model.encode(context, convert_to_tensor=True)
     return embeddings
 
+# Function to generate context from details
 def generate_context(details):
-    context = []
-    for key, value in details.items():
-        if isinstance(value, list):
-            value = ', '.join(value)
-        context.append(f"{key.replace('_', ' ').title()}: {value}")
-    return '\n'.join(context)
+    if isinstance(details, dict):
+        context = []
+        for key, value in details.items():
+            if isinstance(value, list):
+                value = ', '.join(value)
+            elif isinstance(value, dict):
+                value = generate_context(value)  # Recursively handle nested dictionaries
+            context.append(f"{key.replace('_', ' ').title()}: {value}")
+        return '\n'.join(context)
+    else:
+        return str(details)
 
 # Function to measure memory usage
 def memory_usage():
