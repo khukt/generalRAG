@@ -1,0 +1,18 @@
+{
+  "Tomato": {
+    "name": "Tomato",
+    "planting_season": "Spring",
+    "harvest_time": "Summer",
+    "soil_type": "Well-drained, fertile soil",
+    "watering_needs": "Regular watering, keep soil moist but not waterlogged",
+    "pests_diseases": ["Aphids", "Blight", "Tomato Hornworm"]
+  },
+  "Corn": {
+    "name": "Corn",
+    "planting_season": "Late Spring",
+    "harvest_time": "Late Summer to Early Fall",
+    "soil_type": "Well-drained, loamy soil",
+    "watering_needs": "Moderate watering, keep soil moist especially during tasseling and ear development",
+    "pests_diseases": ["Corn Earworm", "Rootworm", "Corn Smut"]
+  }
+}
