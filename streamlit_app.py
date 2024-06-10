@@ -209,7 +209,7 @@ model_name = st.selectbox(
         "google/flan-t5-base",
         "t5-small",
         "t5-base",
-        "MBZUAI/LaMini-Flan-T5-248M",
+        "KETI-AIR/ke-t5-base",
         "distilgpt2"
     ],
     index=1
