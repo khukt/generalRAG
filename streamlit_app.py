@@ -85,48 +85,22 @@ def determine_question_type(question):
     else:
         return "Step-by-Step Guide"  # Default to step-by-step if no keywords match
 
+# Function to get the template for the given question type
+def get_template(question_type):
+    templates = {
+        "Step-by-Step Guide": "Please provide a detailed, step-by-step guide on how to grow the specified crop based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nSteps:",
+        "Common Issues": "Please provide a detailed explanation of common issues and their solutions for growing the specified crop based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nIssues and Solutions:",
+        "Best Practices": "Please provide a detailed list of best practices for growing the specified crop based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nBest Practices:",
+        "Watering Schedule": "Please provide a detailed watering schedule for the specified crop based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nWatering Schedule:",
+        "Fertilization Tips": "Please provide detailed fertilization tips for the specified crop based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nFertilization Tips:",
+        "Harvest Timing": "Please provide detailed harvest timing information for the specified crop based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nHarvest Timing:",
+    }
+    return templates.get(question_type, templates["Step-by-Step Guide"])
+
 # Function to generate text based on input question and context
 def generate_paragraph(question_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping):
-    templates = {
-        "Step-by-Step Guide": (
-            f"Please provide a detailed, step-by-step guide on how to grow the specified crop based on the following question and context.\n\n"
-            f"Question: {question}\n\n"
-            f"Context: {context}\n\n"
-            f"Steps:"
-        ),
-        "Common Issues": (
-            f"Please provide a detailed explanation of common issues and their solutions for growing the specified crop based on the following question and context.\n\n"
-            f"Question: {question}\n\n"
-            f"Context: {context}\n\n"
-            f"Issues and Solutions:"
-        ),
-        "Best Practices": (
-            f"Please provide a detailed list of best practices for growing the specified crop based on the following question and context.\n\n"
-            f"Question: {question}\n\n"
-            f"Context: {context}\n\n"
-            f"Best Practices:"
-        ),
-        "Watering Schedule": (
-            f"Please provide a detailed watering schedule for the specified crop based on the following question and context.\n\n"
-            f"Question: {question}\n\n"
-            f"Context: {context}\n\n"
-            f"Watering Schedule:"
-        ),
-        "Fertilization Tips": (
-            f"Please provide detailed fertilization tips for the specified crop based on the following question and context.\n\n"
-            f"Question: {question}\n\n"
-            f"Context: {context}\n\n"
-            f"Fertilization Tips:"
-        ),
-        "Harvest Timing": (
-            f"Please provide detailed harvest timing information for the specified crop based on the following question and context.\n\n"
-            f"Question: {question}\n\n"
-            f"Context: {context}\n\n"
-            f"Harvest Timing:"
-        )
-    }
-    
-    input_text = templates.get(question_type, templates["Step-by-Step Guide"])
+    template = get_template(question_type)
+    input_text = template.format(question=question, context=context)
     inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
     
     # Measure memory before generation
