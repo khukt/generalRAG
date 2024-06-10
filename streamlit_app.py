@@ -222,6 +222,6 @@ if question:
     
     st.subheader("Memory Usage Details")
     st.write(f"Model memory usage: {model_memory_usage:.2f} MB")
-    st.write(f"Memory used during generation: {memory_footprint:.2f MB")
-    st.write(f"Other memory usage: {other_memory_usage:.2f MB")
-    st.write(f"Total memory usage: {total_memory_usage:.2f MB")
+    st.write(f"Memory used during generation: {memory_footprint:.2f} MB")
+    st.write(f"Other memory usage: {other_memory_usage:.2f} MB")
+    st.write(f"Total memory usage: {total_memory_usage:.2f} MB")
