@@ -156,7 +156,18 @@ question = st.text_input("Question", value="How to grow tomatoes?", key="questio
 
 if question:
     relevant_context = find_relevant_crop_context(question, crop_embeddings)
-    context = json.dumps(relevant_context, indent=4)
+    context = f"""
+    Crop Name: {relevant_context['name']}
+    Planting Season: {relevant_context['planting_season']}
+    Harvest Time: {relevant_context['harvest_time']}
+    Soil Type: {relevant_context['soil_type']}
+    Soil Preparation: {relevant_context['soil_preparation']}
+    Watering Frequency: {relevant_context['watering_frequency']}
+    Fertilization Schedule: {relevant_context['fertilization_schedule']}
+    Pests and Diseases: {', '.join(relevant_context['pests_diseases'])}
+    Pest Management: {relevant_context['pest_management']}
+    Harvesting Techniques: {relevant_context['harvesting_techniques']}
+    """
     question_type = determine_question_type(question)
 else:
     context = ""
@@ -166,7 +177,7 @@ st.subheader("Detected Question Type")
 st.write(f"**{question_type}**")
 
 st.subheader("Context")
-st.markdown(f"```json\n{context}\n```")
+st.markdown(f"```{context}```")
 
 # Additional controls for model.generate parameters in the sidebar
 st.sidebar.title("Model Parameters")
