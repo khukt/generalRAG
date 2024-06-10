@@ -126,7 +126,7 @@ st.write("Enter your question to generate a detailed guide.")
 # Load embeddings once after the app starts
 embeddings = generate_embeddings(crop_data)
 
-question = st.text_input("Question", value="How to grow tomatoes?", key="question")
+question = st.text_input("Question", value="How to grow crops?", key="question")
 
 st.sidebar.title("Keyword and Template Configuration")
 
@@ -154,13 +154,13 @@ for line in question_types.split('\n'):
 st.sidebar.subheader("Define templates for question types")
 templates = st.sidebar.text_area(
     "Format: Type: Template",
-    value="Step-by-Step Guide: To grow tomatoes, follow these steps based on the provided context. Planting season: {Planting Season}. Prepare the soil by {Soil Preparation}. Ensure the soil type is {Soil Type}. Water regularly, keeping the soil moist but not waterlogged. Fertilize every {Fertilization Schedule}. Manage pests such as {Pests Diseases} by {Pest Management}. Harvest tomatoes when they are {Harvesting Techniques}.\n"
-          "Common Issues: For growing tomatoes, common issues include {Pests Diseases}. To manage these issues, you can {Pest Management}.\n"
-          "Best Practices: The best practices for growing tomatoes include {Fertilization Schedule}, {Soil Preparation}, and managing pests by {Pest Management}.\n"
-          "Watering Schedule: Watering schedule for tomatoes is {Watering Frequency}.\n"
-          "Fertilization Tips: Fertilize tomatoes every {Fertilization Schedule} with a balanced fertilizer.\n"
-          "Harvest Timing: Harvest tomatoes {Harvesting Techniques}.\n"
-          "General Information: Here is some general information about growing tomatoes: Planting season: {Planting Season}, Soil type: {Soil Type}, Harvest time: {Harvest Time}.\n"
+    value="Step-by-Step Guide: To grow crops, follow these steps based on the provided context. Planting season: {Planting Season}. Prepare the soil by {Soil Preparation}. Ensure the soil type is {Soil Type}. Water regularly, keeping the soil moist but not waterlogged. Fertilize every {Fertilization Schedule}. Manage pests such as {Pests Diseases} by {Pest Management}. Harvest crops when they are {Harvesting Techniques}.\n"
+          "Common Issues: For growing crops, common issues include {Pests Diseases}. To manage these issues, you can {Pest Management}.\n"
+          "Best Practices: The best practices for growing crops include {Fertilization Schedule}, {Soil Preparation}, and managing pests by {Pest Management}.\n"
+          "Watering Schedule: Watering schedule for crops is {Watering Frequency}.\n"
+          "Fertilization Tips: Fertilize crops every {Fertilization Schedule} with a balanced fertilizer.\n"
+          "Harvest Timing: Harvest crops {Harvesting Techniques}.\n"
+          "General Information: Here is some general information about growing crops: Planting season: {Planting Season}, Soil type: {Soil Type}, Harvest time: {Harvest Time}.\n"
 )
 
 for line in templates.split('\n'):
@@ -170,7 +170,7 @@ for line in templates.split('\n'):
 
 if question:
     relevant_context = find_relevant_context(question, embeddings)
-    context = {k: v for k, v in [item.split(": ") for item in generate_context(relevant_context).split("\n")]}
+    context = {k: v for k, v in [item.split(": ", 1) for item in generate_context(relevant_context).split("\n")]}
     question_type = determine_question_type(question, keyword_mapping)
 else:
     context = {}
