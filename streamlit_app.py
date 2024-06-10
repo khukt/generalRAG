@@ -190,12 +190,7 @@ model_name = st.selectbox(
         "google/flan-t5-base",
         "t5-small",
         "t5-base",
-        "distilbert-base-uncased",
-        "distilbert-base-cased",
-        "distilroberta-base",
-        "bert-base-uncased",
-        "bert-base-cased",
-        "roberta-base"
+        "distilgpt2"
     ],
     index=1
 )
