@@ -8,3 +8,4 @@ sentencepiece
 matplotlib
 requests
 bitsandbytes
+accelerate
