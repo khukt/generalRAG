@@ -152,9 +152,8 @@ def format_output(output):
 st.title("Crop Growing Guide Generator")
 st.write("Enter your question to generate a detailed guide.")
 
-question = st.text_input("Question", value="How to grow tomatoes?")
+question = st.text_input("Question", value="How to grow tomatoes?", key="question")
 
-# Retrieve the most relevant context based on the question
 if question:
     relevant_context = find_relevant_crop_context(question, crop_embeddings)
     context = json.dumps(relevant_context, indent=4)
@@ -176,7 +175,7 @@ num_beams = st.sidebar.slider("Number of Beams", 1, 10, 5)
 no_repeat_ngram_size = st.sidebar.slider("No Repeat N-Gram Size", 1, 10, 2)
 early_stopping = st.sidebar.checkbox("Early Stopping", value=True)
 
-if st.button("Generate Guide"):
+if question:
     with st.spinner("Generating..."):
         guide, memory_footprint = generate_paragraph(question_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping)
     st.subheader("Generated Guide")
