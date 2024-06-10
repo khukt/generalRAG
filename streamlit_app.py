@@ -19,6 +19,9 @@ def memory_usage():
     mem_info = process.memory_info()
     return mem_info.rss / (1024 ** 2)  # Convert bytes to MB
 
+# Measure memory usage after loading the model
+model_memory_usage = memory_usage()
+
 # Function to generate text based on input question and context
 def generate_paragraph(question_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping):
     templates = {
@@ -111,8 +114,16 @@ if st.button("Generate Guide"):
         guide, memory_footprint = generate_paragraph(question_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping)
     st.subheader("Generated Guide")
     st.write(guide)
-    st.subheader("Memory Footprint")
+    
+    # Calculate total memory usage and other memory usage
+    total_memory_usage = memory_usage()
+    other_memory_usage = total_memory_usage - model_memory_usage - memory_footprint
+    
+    st.subheader("Memory Usage Details")
+    st.write(f"Model memory usage: {model_memory_usage:.2f} MB")
     st.write(f"Memory used during generation: {memory_footprint:.2f} MB")
+    st.write(f"Other memory usage: {other_memory_usage:.2f} MB")
+    st.write(f"Total memory usage: {total_memory_usage:.2f} MB")
 
 # Cache resource decorator for efficient reloading
 @st.cache_resource
