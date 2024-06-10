@@ -22,7 +22,11 @@ def get_crop_data():
 @st.cache_resource
 def load_model():
     model_name = "google/flan-t5-base"
-    model = T5ForConditionalGeneration.from_pretrained(model_name)
+    model = T5ForConditionalGeneration.from_pretrained(
+        model_name, 
+        device_map='auto',
+        load_in_8bit=True
+    )
     tokenizer = T5Tokenizer.from_pretrained(model_name, legacy=False)
     return model, tokenizer
 
@@ -80,7 +84,7 @@ def determine_question_type(question, templates):
 @st.cache_resource
 def load_templates(file_path='templates.json'):
     if os.path.exists(file_path):
-        with open(file_path, 'r') as file:
+        with open(file_path, 'r') as file):
             return json.load(file)
     else:
         return {
