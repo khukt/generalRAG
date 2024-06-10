@@ -175,22 +175,6 @@ def format_output(output):
 st.title("Crop Growing Guide Generator")
 st.write("Enter your question to generate a detailed guide.")
 
-# Buttons to clear cache and reload models, embeddings, and templates
-if st.button("Clear Cache and Reload Models"):
-    load_model.clear()
-    load_embedding_model.clear()
-    generate_embeddings.clear()
-    st.experimental_rerun()
-
-if st.button("Clear Cache and Reload Data"):
-    get_crop_data.clear()
-    generate_embeddings.clear()
-    st.experimental_rerun()
-
-if st.button("Clear Cache and Reload Templates"):
-    load_templates.clear()
-    st.experimental_rerun()
-
 question = st.text_input("Question", value="How to grow tomatoes?", key="question")
 
 crop_data = get_crop_data()
@@ -228,6 +212,23 @@ if st.sidebar.button("Save Template"):
     templates[selected_question_type] = template_input
     save_templates(templates)
     st.sidebar.success("Template saved successfully!")
+
+# Buttons to clear cache and reload models, embeddings, and templates
+st.sidebar.title("Cache Management")
+if st.sidebar.button("Clear Cache and Reload Models"):
+    load_model.clear()
+    load_embedding_model.clear()
+    generate_embeddings.clear()
+    st.experimental_rerun()
+
+if st.sidebar.button("Clear Cache and Reload Data"):
+    get_crop_data.clear()
+    generate_embeddings.clear()
+    st.experimental_rerun()
+
+if st.sidebar.button("Clear Cache and Reload Templates"):
+    load_templates.clear()
+    st.experimental_rerun()
 
 if question:
     with st.spinner("Generating..."):
