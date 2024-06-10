@@ -21,7 +21,7 @@ crop_data = load_json_database('crop_data.json')
 def load_model():
     model_name = "google/flan-t5-base"
     model = T5ForConditionalGeneration.from_pretrained(model_name)
-    tokenizer = T5Tokenizer.from_pretrained(model_name)
+    tokenizer = T5Tokenizer.from_pretrained(model_name, legacy=False)
     return model, tokenizer
 
 # Load embedding model
