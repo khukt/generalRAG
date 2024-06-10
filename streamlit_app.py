@@ -2,6 +2,7 @@ import streamlit as st
 from transformers import T5ForConditionalGeneration, T5Tokenizer
 import psutil
 import os
+import requests
 
 # Cache the model and tokenizer to optimize memory usage
 @st.cache_resource
@@ -74,11 +75,23 @@ def format_output(output):
         formatted_output += '.'
     return formatted_output
 
+# Function to fetch data from FAOSTAT API
+def fetch_faostat_data(crop):
+    url = f"http://fenixservices.fao.org/faostat/api/v1/en/data/QC?&filter=contains&item={crop}&format=json"
+    response = requests.get(url)
+    data = response.json()
+    return data
+
 # Streamlit UI
 st.title("Crop Growing Guide Generator")
 st.write("Select a crop, question type, and enter your question and context to generate a detailed guide.")
 
 crop_choice = st.selectbox("Select Crop", ["Tomato", "Corn"])
+
+# Fetch data from FAOSTAT API
+faostat_data = fetch_faostat_data(crop_choice)
+st.write(f"FAOSTAT Data for {crop_choice}:")
+st.json(faostat_data)
 
 crop_contexts = {
     "Tomato": """
