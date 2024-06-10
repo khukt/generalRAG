@@ -82,15 +82,15 @@ def determine_question_type(question, keyword_mapping):
     for question_type, keywords in keyword_mapping.items():
         if any(keyword in question for keyword in keywords):
             return question_type
-    return "General Information"  # Default if no keywords match
+    return "Step-by-Step Guide"  # Default to step-by-step if no keywords match
 
 # Function to get the template for the given question type
 def get_template(question_type, template_mapping):
-    return template_mapping.get(question_type, template_mapping["General Information"])
+    return template_mapping.get(question_type, template_mapping["Step-by-Step Guide"])
 
 # Function to generate text based on input question and context
 def generate_paragraph(template, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping):
-    input_text = template.format(question=question, **context)
+    input_text = template.format(question=question, context=context)
     inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
     
     # Measure memory before generation
@@ -152,35 +152,34 @@ for line in question_types.split('\n'):
         keyword_mapping[q_type.strip()] = [k.strip() for k in keywords.split(',')]
 
 st.sidebar.subheader("Define templates for question types")
-templates = st.sidebar.text_area(
+templates_text = st.sidebar.text_area(
     "Format: Type: Template",
-    value="Step-by-Step Guide: To grow crops, follow these steps based on the provided context. Planting season: {Planting Season}. Prepare the soil by {Soil Preparation}. Ensure the soil type is {Soil Type}. Water regularly, keeping the soil moist but not waterlogged. Fertilize every {Fertilization Schedule}. Manage pests such as {Pests Diseases} by {Pest Management}. Harvest crops when they are {Harvesting Techniques}.\n"
-          "Common Issues: For growing crops, common issues include {Pests Diseases}. To manage these issues, you can {Pest Management}.\n"
-          "Best Practices: The best practices for growing crops include {Fertilization Schedule}, {Soil Preparation}, and managing pests by {Pest Management}.\n"
-          "Watering Schedule: Watering schedule for crops is {Watering Frequency}.\n"
-          "Fertilization Tips: Fertilize crops every {Fertilization Schedule} with a balanced fertilizer.\n"
-          "Harvest Timing: Harvest crops {Harvesting Techniques}.\n"
-          "General Information: Here is some general information about growing crops: Planting season: {Planting Season}, Soil type: {Soil Type}, Harvest time: {Harvest Time}.\n"
+    value="Step-by-Step Guide: Please provide a detailed, step-by-step guide on how to grow the specified crop based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nSteps:\n"
+          "Common Issues: Please provide a detailed explanation of common issues and their solutions for growing the specified crop based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nIssues and Solutions:\n"
+          "Best Practices: Please provide a detailed list of best practices for growing the specified crop based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nBest Practices:\n"
+          "Watering Schedule: Please provide a detailed watering schedule for the specified crop based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nWatering Schedule:\n"
+          "Fertilization Tips: Please provide detailed fertilization tips for the specified crop based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nFertilization Tips:\n"
+          "Harvest Timing: Please provide detailed harvest timing information for the specified crop based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nHarvest Timing:\n"
 )
 
-for line in templates.split('\n'):
+for line in templates_text.split('\n'):
     if ':' in line:
         q_type, template = line.split(':', 1)
         template_mapping[q_type.strip()] = template.strip()
 
 if question:
     relevant_context = find_relevant_context(question, embeddings)
-    context = {k: v for k, v in [item.split(": ", 1) for item in generate_context(relevant_context).split("\n")]}
+    context = generate_context(relevant_context)
     question_type = determine_question_type(question, keyword_mapping)
 else:
-    context = {}
-    question_type = "General Information"
+    context = ""
+    question_type = "Step-by-Step Guide"
 
 st.subheader("Detected Question Type")
 st.write(f"**{question_type}**")
 
 st.subheader("Context")
-st.markdown(f"```{generate_context(relevant_context)}```")
+st.markdown(f"```{context}```")
 
 # Additional controls for model.generate parameters in the sidebar
 st.sidebar.title("Model Parameters")
