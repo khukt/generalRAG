@@ -162,6 +162,9 @@ file_path = st.sidebar.file_uploader("Upload JSON database", type=["json"])
 if file_path:
     crop_data = load_json_database(file_path)
     crop_embeddings = generate_crop_embeddings(crop_data)
+else:
+    crop_data = None
+    crop_embeddings = None
 
 if question and crop_data:
     relevant_context = find_relevant_crop_context(question, crop_embeddings)
