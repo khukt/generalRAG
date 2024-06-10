@@ -60,6 +60,18 @@ def find_relevant_crop_context(question, crop_embeddings):
     best_match_crop = list(crop_embeddings.keys())[best_match_index]
     return crop_data[best_match_crop]
 
+# Function to automatically determine question type
+def determine_question_type(question):
+    question = question.lower()
+    if any(keyword in question for keyword in ["how", "grow", "steps", "step-by-step"]):
+        return "step-by-step"
+    elif any(keyword in question for keyword in ["issues", "problems", "diseases", "pests"]):
+        return "common issues"
+    elif any(keyword in question for keyword in ["best practices", "tips", "guidelines", "recommendations"]):
+        return "best practices"
+    else:
+        return "step-by-step"  # Default to step-by-step if no keywords match
+
 # Function to generate text based on input question and context
 def generate_paragraph(question_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping):
     templates = {
@@ -122,12 +134,12 @@ question = st.text_input("Question", value="How to grow tomatoes?")
 if question:
     relevant_context = find_relevant_crop_context(question, crop_embeddings)
     context = json.dumps(relevant_context, indent=4)
+    question_type = determine_question_type(question)
 else:
     context = ""
+    question_type = "step-by-step"
 
-st.text_area("Context", value=context, height=200)
-
-question_type = st.selectbox("Select Question Type", ["step-by-step", "common issues", "best practices"])
+st.text_area("Context", value=context, height=200, disabled=True)
 
 # Additional controls for model.generate parameters in the sidebar
 st.sidebar.title("Model Parameters")
