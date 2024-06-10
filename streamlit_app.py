@@ -14,7 +14,7 @@ def load_json_database(file_path):
     return data
 
 # Load data from JSON file
-data = load_json_database('data.json')
+data = load_json_database('crop_data.json')
 
 # Cache the model and tokenizer to optimize memory usage
 @st.cache_resource
