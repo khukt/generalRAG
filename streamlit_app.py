@@ -13,8 +13,8 @@ def load_json_database(file_path):
         data = json.load(file)
     return data
 
-# Load crop data from JSON file
-crop_data = load_json_database('crop_data.json')
+# Load data from JSON file
+data = load_json_database('data.json')
 
 # Cache the model and tokenizer to optimize memory usage
 @st.cache_resource
@@ -32,27 +32,27 @@ def load_embedding_model():
 embedding_model = load_embedding_model()
 model, tokenizer = load_model()
 
-# Generate embeddings for crop contexts
+# Generate embeddings for contexts
 @st.cache_resource
-def generate_crop_embeddings(crop_data):
+def generate_embeddings(data):
     embeddings = {}
-    for crop, details in crop_data.items():
-        context = f"""
-        Crop Name: {details.get('name', 'N/A')}
-        Planting Season: {details.get('planting_season', 'N/A')}
-        Harvest Time: {details.get('harvest_time', 'N/A')}
-        Soil Type: {details.get('soil_type', 'N/A')}
-        Soil Preparation: {details.get('soil_preparation', 'N/A')}
-        Watering Frequency: {details.get('watering_frequency', 'N/A')}
-        Fertilization Schedule: {details.get('fertilization_schedule', 'N/A')}
-        Pests and Diseases: {', '.join(details.get('pests_diseases', []))}
-        Pest Management: {details.get('pest_management', 'N/A')}
-        Harvesting Techniques: {details.get('harvesting_techniques', 'N/A')}
-        """
-        embeddings[crop] = embedding_model.encode(context, convert_to_tensor=True)
+    for key, details in data.items():
+        context = generate_context(key, details)
+        embeddings[key] = embedding_model.encode(context, convert_to_tensor=True)
     return embeddings
 
-crop_embeddings = generate_crop_embeddings(crop_data)
+# General function to generate context from details
+def generate_context(key, details):
+    context_lines = [f"{key.capitalize()}:"]
+    for k, v in details.items():
+        if isinstance(v, list):
+            v = ', '.join(map(str, v))
+        elif isinstance(v, dict):
+            v = generate_context(k, v)  # Recursively handle nested dictionaries
+        context_lines.append(f"{k.replace('_', ' ').title()}: {v}")
+    return '\n'.join(context_lines)
+
+embeddings = generate_embeddings(data)
 
 # Function to measure memory usage
 def memory_usage():
@@ -63,14 +63,14 @@ def memory_usage():
 # Measure memory usage after loading the model
 model_memory_usage = memory_usage()
 
-# Function to find the most relevant crop context based on the question
+# Function to find the most relevant context based on the question
 @st.cache_data
-def find_relevant_crop_context(question, _crop_embeddings):
+def find_relevant_context(question, _embeddings):
     question_embedding = embedding_model.encode(question, convert_to_tensor=True)
-    cosine_scores = util.pytorch_cos_sim(question_embedding, torch.stack(list(_crop_embeddings.values())))
+    cosine_scores = util.pytorch_cos_sim(question_embedding, torch.stack(list(_embeddings.values())))
     best_match_index = torch.argmax(cosine_scores).item()
-    best_match_crop = list(_crop_embeddings.keys())[best_match_index]
-    return crop_data[best_match_crop]
+    best_match_key = list(_embeddings.keys())[best_match_index]
+    return data[best_match_key]
 
 # Improved function to automatically determine question type
 def determine_question_type(question):
@@ -98,37 +98,37 @@ def load_templates(file_path='templates.json'):
     else:
         return {
             "Step-by-Step Guide": (
-                "Please provide a detailed, step-by-step guide on how to grow the specified crop based on the following question and context.\n\n"
+                "Please provide a detailed, step-by-step guide on how to perform the specified task based on the following question and context.\n\n"
                 "Question: {question}\n\n"
                 "Context: {context}\n\n"
                 "Steps:"
             ),
             "Common Issues": (
-                "Please provide a detailed explanation of common issues and their solutions for growing the specified crop based on the following question and context.\n\n"
+                "Please provide a detailed explanation of common issues and their solutions for the specified task based on the following question and context.\n\n"
                 "Question: {question}\n\n"
                 "Context: {context}\n\n"
                 "Issues and Solutions:"
             ),
             "Best Practices": (
-                "Please provide a detailed list of best practices for growing the specified crop based on the following question and context.\n\n"
+                "Please provide a detailed list of best practices for the specified task based on the following question and context.\n\n"
                 "Question: {question}\n\n"
                 "Context: {context}\n\n"
                 "Best Practices:"
             ),
             "Watering Schedule": (
-                "Please provide a detailed watering schedule for the specified crop based on the following question and context.\n\n"
+                "Please provide a detailed watering schedule for the specified task based on the following question and context.\n\n"
                 "Question: {question}\n\n"
                 "Context: {context}\n\n"
                 "Watering Schedule:"
             ),
             "Fertilization Tips": (
-                "Please provide detailed fertilization tips for the specified crop based on the following question and context.\n\n"
+                "Please provide detailed fertilization tips for the specified task based on the following question and context.\n\n"
                 "Question: {question}\n\n"
                 "Context: {context}\n\n"
                 "Fertilization Tips:"
             ),
             "Harvest Timing": (
-                "Please provide detailed harvest timing information for the specified crop based on the following question and context.\n\n"
+                "Please provide detailed harvest timing information for the specified task based on the following question and context.\n\n"
                 "Question: {question}\n\n"
                 "Context: {context}\n\n"
                 "Harvest Timing:"
@@ -175,25 +175,14 @@ def format_output(output):
     return formatted_output
 
 # Streamlit UI
-st.title("Crop Growing Guide Generator")
+st.title("Generalized Data Guide Generator")
 st.write("Enter your question to generate a detailed guide.")
 
-question = st.text_input("Question", value="How to grow tomatoes?", key="question")
+question = st.text_input("Question", value="How to perform the task?", key="question")
 
 if question:
-    relevant_context = find_relevant_crop_context(question, crop_embeddings)
-    context = f"""
-    Crop Name: {relevant_context.get('name', 'N/A')}
-    Planting Season: {relevant_context.get('planting_season', 'N/A')}
-    Harvest Time: {relevant_context.get('harvest_time', 'N/A')}
-    Soil Type: {relevant_context.get('soil_type', 'N/A')}
-    Soil Preparation: {relevant_context.get('soil_preparation', 'N/A')}
-    Watering Frequency: {relevant_context.get('watering_frequency', 'N/A')}
-    Fertilization Schedule: {relevant_context.get('fertilization_schedule', 'N/A')}
-    Pests and Diseases: {', '.join(relevant_context.get('pests_diseases', []))}
-    Pest Management: {relevant_context.get('pest_management', 'N/A')}
-    Harvesting Techniques: {relevant_context.get('harvesting_techniques', 'N/A')}
-    """
+    relevant_context = find_relevant_context(question, embeddings)
+    context = generate_context("Task", relevant_context)
     question_type = determine_question_type(question)
 else:
     context = ""
