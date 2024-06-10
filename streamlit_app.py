@@ -69,22 +69,12 @@ def find_relevant_context(question, _embeddings):
     return crop_data[best_match_key]
 
 # Improved function to automatically determine question type
-def determine_question_type(question):
+def determine_question_type(question, templates):
     question = question.lower()
-    if any(keyword in question for keyword in ["how", "grow", "plant", "cultivate"]):
-        return "Planting Guide"
-    elif any(keyword in question for keyword in ["issues", "problems", "diseases", "pests"]):
-        return "Common Issues"
-    elif any(keyword in question for keyword in ["best practices", "tips", "guidelines", "recommendations"]):
-        return "Best Practices"
-    elif any(keyword in question for keyword in ["watering", "irrigation", "water schedule"]):
-        return "Watering Schedule"
-    elif any(keyword in question for keyword in ["fertilization", "fertilizer", "feeding", "nutrition"]):
-        return "Fertilization Tips"
-    elif any(keyword in question for keyword in ["harvest", "harvesting", "pick", "picking"]):
-        return "Harvest Timing"
-    else:
-        return "Planting Guide"  # Default to planting guide if no keywords match
+    for question_type, details in templates.items():
+        if any(keyword in question for keyword in details.get("keywords", [])):
+            return question_type
+    return "Planting Guide"  # Default to planting guide if no keywords match
 
 # Function to load templates
 @st.cache_resource
@@ -94,47 +84,65 @@ def load_templates(file_path='templates.json'):
             return json.load(file)
     else:
         return {
-            "Planting Guide": (
-                "Please provide a detailed guide on how to plant and grow the specified crop based on the following question and context.\n\n"
-                "Question: {question}\n\n"
-                "Context: {context}\n\n"
-                "Guide:"
-            ),
-            "Common Issues": (
-                "Please provide a detailed explanation of common issues and their solutions for growing the specified crop based on the following question and context.\n\n"
-                "Question: {question}\n\n"
-                "Context: {context}\n\n"
-                "Issues and Solutions:"
-            ),
-            "Best Practices": (
-                "Please provide a detailed list of best practices for growing the specified crop based on the following question and context.\n\n"
-                "Question: {question}\n\n"
-                "Context: {context}\n\n"
-                "Best Practices:"
-            ),
-            "Watering Schedule": (
-                "Please provide a detailed watering schedule for the specified crop based on the following question and context.\n\n"
-                "Question: {question}\n\n"
-                "Context: {context}\n\n"
-                "Watering Schedule:"
-            ),
-            "Fertilization Tips": (
-                "Please provide detailed fertilization tips for the specified crop based on the following question and context.\n\n"
-                "Question: {question}\n\n"
-                "Context: {context}\n\n"
-                "Fertilization Tips:"
-            ),
-            "Harvest Timing": (
-                "Please provide detailed harvest timing information for the specified crop based on the following question and context.\n\n"
-                "Question: {question}\n\n"
-                "Context: {context}\n\n"
-                "Harvest Timing:"
-            )
+            "Planting Guide": {
+                "template": (
+                    "Please provide a detailed guide on how to plant and grow the specified crop based on the following question and context.\n\n"
+                    "Question: {question}\n\n"
+                    "Context: {context}\n\n"
+                    "Guide:"
+                ),
+                "keywords": ["how", "grow", "plant", "cultivate"]
+            },
+            "Common Issues": {
+                "template": (
+                    "Please provide a detailed explanation of common issues and their solutions for growing the specified crop based on the following question and context.\n\n"
+                    "Question: {question}\n\n"
+                    "Context: {context}\n\n"
+                    "Issues and Solutions:"
+                ),
+                "keywords": ["issues", "problems", "diseases", "pests"]
+            },
+            "Best Practices": {
+                "template": (
+                    "Please provide a detailed list of best practices for growing the specified crop based on the following question and context.\n\n"
+                    "Question: {question}\n\n"
+                    "Context: {context}\n\n"
+                    "Best Practices:"
+                ),
+                "keywords": ["best practices", "tips", "guidelines", "recommendations"]
+            },
+            "Watering Schedule": {
+                "template": (
+                    "Please provide a detailed watering schedule for the specified crop based on the following question and context.\n\n"
+                    "Question: {question}\n\n"
+                    "Context: {context}\n\n"
+                    "Watering Schedule:"
+                ),
+                "keywords": ["watering", "irrigation", "water schedule"]
+            },
+            "Fertilization Tips": {
+                "template": (
+                    "Please provide detailed fertilization tips for the specified crop based on the following question and context.\n\n"
+                    "Question: {question}\n\n"
+                    "Context: {context}\n\n"
+                    "Fertilization Tips:"
+                ),
+                "keywords": ["fertilization", "fertilizer", "feeding", "nutrition"]
+            },
+            "Harvest Timing": {
+                "template": (
+                    "Please provide detailed harvest timing information for the specified crop based on the following question and context.\n\n"
+                    "Question: {question}\n\n"
+                    "Context: {context}\n\n"
+                    "Harvest Timing:"
+                ),
+                "keywords": ["harvest", "harvesting", "pick", "picking"]
+            }
         }
 
 # Function to save templates
 def save_templates(templates, file_path='templates.json'):
-    with open(file_path, 'w') as file:
+    with open(file_path, 'w') as file):
         json.dump(templates, file, indent=4)
 
 # Load existing templates or default ones
@@ -142,7 +150,7 @@ templates = load_templates()
 
 # Function to generate text based on input question and context
 def generate_paragraph(question_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping):
-    input_text = templates.get(question_type, templates["Planting Guide"]).format(question=question, context=context)
+    input_text = templates[question_type]["template"].format(question=question, context=context)
     inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
     
     # Measure memory before generation
@@ -185,7 +193,7 @@ embeddings = generate_embeddings(crop_data)
 if question:
     relevant_context = find_relevant_context(question, embeddings)
     context = generate_context("Crop", relevant_context)
-    question_type = determine_question_type(question)
+    question_type = determine_question_type(question, templates)
 else:
     context = ""
     question_type = "Planting Guide"
@@ -207,9 +215,11 @@ early_stopping = st.sidebar.checkbox("Early Stopping", value=True)
 st.sidebar.title("Template Configuration")
 selected_question_type = st.sidebar.selectbox("Select Question Type", list(templates.keys()))
 
-template_input = st.sidebar.text_area("Template", value=templates[selected_question_type])
+template_input = st.sidebar.text_area("Template", value=templates[selected_question_type]["template"])
+keywords_input = st.sidebar.text_area("Keywords (comma separated)", value=", ".join(templates[selected_question_type]["keywords"]))
 if st.sidebar.button("Save Template"):
-    templates[selected_question_type] = template_input
+    templates[selected_question_type]["template"] = template_input
+    templates[selected_question_type]["keywords"] = [keyword.strip() for keyword in keywords_input.split(',')]
     save_templates(templates)
     st.sidebar.success("Template saved successfully!")
 
