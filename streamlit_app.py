@@ -172,4 +172,21 @@ st.markdown(f"```json\n{context}\n```")
 st.sidebar.title("Model Parameters")
 max_length = st.sidebar.slider("Max Length", 50, 500, 300)
 num_beams = st.sidebar.slider("Number of Beams", 1, 10, 5)
-no_repeat_ng
+no_repeat_ngram_size = st.sidebar.slider("No Repeat N-Gram Size", 1, 10, 2)
+early_stopping = st.sidebar.checkbox("Early Stopping", value=True)
+
+if question:
+    with st.spinner("Generating..."):
+        guide, memory_footprint = generate_paragraph(question_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping)
+    st.subheader("Generated Guide")
+    st.write(guide)
+    
+    # Calculate total memory usage and other memory usage
+    total_memory_usage = memory_usage()
+    other_memory_usage = total_memory_usage - model_memory_usage - memory_footprint
+    
+    st.subheader("Memory Usage Details")
+    st.write(f"Model memory usage: {model_memory_usage:.2f} MB")
+    st.write(f"Memory used during generation: {memory_footprint:.2f} MB")
+    st.write(f"Other memory usage: {other_memory_usage:.2f} MB")
+    st.write(f"Total memory usage: {total_memory_usage:.2f} MB")
