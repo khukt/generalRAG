@@ -154,13 +154,13 @@ for line in question_types.split('\n'):
 st.sidebar.subheader("Define templates for question types")
 templates = st.sidebar.text_area(
     "Format: Type: Template",
-    value="Step-by-Step Guide: Please provide a detailed, step-by-step guide on how to grow the specified crop based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nSteps:\n"
-          "Common Issues: Please provide a detailed explanation of common issues and their solutions for growing the specified crop based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nIssues and Solutions:\n"
-          "Best Practices: Please provide a detailed list of best practices for growing the specified crop based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nBest Practices:\n"
-          "Watering Schedule: Please provide a detailed watering schedule for the specified crop based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nWatering Schedule:\n"
-          "Fertilization Tips: Please provide detailed fertilization tips for the specified crop based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nFertilization Tips:\n"
-          "Harvest Timing: Please provide detailed harvest timing information for the specified crop based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nHarvest Timing:\n"
-          "General Information: Please provide general information about the specified crop based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\nInformation:\n"
+    value="Step-by-Step Guide: To grow tomatoes, follow these steps based on the provided context. Planting season: {context['Planting Season']}. Prepare the soil by {context['Soil Preparation']}. Ensure the soil type is {context['Soil Type']}. Water regularly, keeping the soil moist but not waterlogged. Fertilize every {context['Fertilization Schedule']}. Manage pests such as {context['Pests Diseases']} by {context['Pest Management']}. Harvest tomatoes when they are {context['Harvesting Techniques']}.\n"
+          "Common Issues: For growing tomatoes, common issues include {context['Pests Diseases']}. To manage these issues, you can {context['Pest Management']}.\n"
+          "Best Practices: The best practices for growing tomatoes include {context['Fertilization Schedule']}, {context['Soil Preparation']}, and managing pests by {context['Pest Management']}.\n"
+          "Watering Schedule: Watering schedule for tomatoes is {context['Watering Frequency']}.\n"
+          "Fertilization Tips: Fertilize tomatoes every {context['Fertilization Schedule']} with a balanced fertilizer.\n"
+          "Harvest Timing: Harvest tomatoes {context['Harvesting Techniques']}.\n"
+          "General Information: Here is some general information about growing tomatoes: Planting season: {context['Planting Season']}, Soil type: {context['Soil Type']}, Harvest time: {context['Harvest Time']}.\n"
 )
 
 for line in templates.split('\n'):
