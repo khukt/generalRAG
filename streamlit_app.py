@@ -54,9 +54,9 @@ def generate_context(details):
             elif isinstance(value, dict):
                 value = generate_context(value)  # Recursively handle nested dictionaries
             context.append(f"{key.replace('_', ' ').title()}: {value}")
-        return {key.replace('_', ' ').title(): value for key, value in details.items()}
+        return '\n'.join(context)
     else:
-        return {details: details}
+        return str(details)
 
 # Function to measure memory usage
 def memory_usage():
@@ -170,17 +170,17 @@ for line in templates.split('\n'):
 
 if question:
     relevant_context = find_relevant_context(question, embeddings)
-    context = generate_context(relevant_context)
+    context = {k: v for k, v in [item.split(": ") for item in generate_context(relevant_context).split("\n")]}
     question_type = determine_question_type(question, keyword_mapping)
 else:
-    context = ""
+    context = {}
     question_type = "General Information"
 
 st.subheader("Detected Question Type")
 st.write(f"**{question_type}**")
 
 st.subheader("Context")
-st.markdown(f"```{context}```")
+st.markdown(f"```{generate_context(relevant_context)}```")
 
 # Additional controls for model.generate parameters in the sidebar
 st.sidebar.title("Model Parameters")
