@@ -1,5 +1,7 @@
 import streamlit as st
 from transformers import T5ForConditionalGeneration, T5Tokenizer
+import psutil
+import os
 
 # Cache the model and tokenizer to optimize memory usage
 @st.cache_resource
@@ -10,6 +12,12 @@ def load_model():
     return model, tokenizer
 
 model, tokenizer = load_model()
+
+# Function to measure memory usage
+def memory_usage():
+    process = psutil.Process(os.getpid())
+    mem_info = process.memory_info()
+    return mem_info.rss / (1024 ** 2)  # Convert bytes to MB
 
 # Function to generate text based on input question and context
 def generate_paragraph(question_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping):
@@ -36,6 +44,10 @@ def generate_paragraph(question_type, question, context, max_length, num_beams, 
     
     input_text = templates.get(question_type, templates["step-by-step"])
     inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
+    
+    # Measure memory before generation
+    memory_before = memory_usage()
+    
     outputs = model.generate(
         inputs, 
         max_length=max_length, 
@@ -43,8 +55,13 @@ def generate_paragraph(question_type, question, context, max_length, num_beams, 
         no_repeat_ngram_size=no_repeat_ngram_size, 
         early_stopping=early_stopping
     )
+    
+    # Measure memory after generation
+    memory_after = memory_usage()
+    
+    memory_footprint = memory_after - memory_before
     answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    return format_output(answer)
+    return format_output(answer), memory_footprint
 
 # Function to format the output into a well-written paragraph
 def format_output(output):
@@ -91,9 +108,11 @@ early_stopping = st.checkbox("Early Stopping", value=True)
 
 if st.button("Generate Guide"):
     with st.spinner("Generating..."):
-        guide = generate_paragraph(question_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping)
+        guide, memory_footprint = generate_paragraph(question_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping)
     st.subheader("Generated Guide")
     st.write(guide)
+    st.subheader("Memory Footprint")
+    st.write(f"Memory used during generation: {memory_footprint:.2f} MB")
 
 # Cache resource decorator for efficient reloading
 @st.cache_resource
