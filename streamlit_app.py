@@ -14,7 +14,7 @@ def load_json_database(file_path):
     return data
 
 # Specify the path to the JSON data file
-json_file_path = 'data.json'  # Change this to the path of your JSON file
+json_file_path = 'crop_data.json'  # Change this to the path of your JSON file
 
 # Load data from JSON file
 data = load_json_database(json_file_path)
