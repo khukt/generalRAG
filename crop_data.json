@@ -4,15 +4,23 @@
     "planting_season": "Spring",
     "harvest_time": "Summer",
     "soil_type": "Well-drained, fertile soil",
-    "watering_needs": "Regular watering, keep soil moist but not waterlogged",
-    "pests_diseases": ["Aphids", "Blight", "Tomato Hornworm"]
+    "soil_preparation": "Till the soil and add compost before planting.",
+    "watering_frequency": "Regular watering, keep soil moist but not waterlogged.",
+    "fertilization_schedule": "Fertilize every 2 weeks with a balanced fertilizer.",
+    "pests_diseases": ["Aphids", "Blight", "Tomato Hornworm"],
+    "pest_management": "Use insecticidal soap for aphids and handpick tomato hornworms.",
+    "harvesting_techniques": "Harvest when tomatoes are firm and fully colored."
   },
   "Corn": {
     "name": "Corn",
     "planting_season": "Late Spring",
     "harvest_time": "Late Summer to Early Fall",
     "soil_type": "Well-drained, loamy soil",
-    "watering_needs": "Moderate watering, keep soil moist especially during tasseling and ear development",
-    "pests_diseases": ["Corn Earworm", "Rootworm", "Corn Smut"]
+    "soil_preparation": "Mix in aged manure or compost before planting.",
+    "watering_frequency": "Moderate watering, keep soil moist especially during tasseling and ear development.",
+    "fertilization_schedule": "Side-dress with nitrogen fertilizer when plants are 8 inches tall and again when tassels appear.",
+    "pests_diseases": ["Corn Earworm", "Rootworm", "Corn Smut"],
+    "pest_management": "Use Bacillus thuringiensis (Bt) for earworms and rotate crops to manage rootworms.",
+    "harvesting_techniques": "Harvest when ears are full and kernels are milky when punctured."
   }
 }
