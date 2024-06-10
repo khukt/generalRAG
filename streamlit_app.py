@@ -114,16 +114,20 @@ def format_output(output):
 
 # Streamlit UI
 st.title("Crop Growing Guide Generator")
-st.write("Select a crop, question type, and enter your question and context to generate a detailed guide.")
+st.write("Enter your question to generate a detailed guide.")
 
-crop_choice = st.selectbox("Select Crop", list(crop_data.keys()))
-
-question_type = st.selectbox("Select Question Type", ["step-by-step", "common issues", "best practices"])
-question = st.text_input("Question", value=f"How to grow {crop_choice.lower()}?")
+question = st.text_input("Question", value="How to grow tomatoes?")
 
 # Retrieve the most relevant context based on the question
-relevant_context = find_relevant_crop_context(question, crop_embeddings)
-context = st.text_area("Context", value=json.dumps(relevant_context, indent=4))
+if question:
+    relevant_context = find_relevant_crop_context(question, crop_embeddings)
+    context = json.dumps(relevant_context, indent=4)
+else:
+    context = ""
+
+st.text_area("Context", value=context, height=200)
+
+question_type = st.selectbox("Select Question Type", ["step-by-step", "common issues", "best practices"])
 
 # Additional controls for model.generate parameters in the sidebar
 st.sidebar.title("Model Parameters")
