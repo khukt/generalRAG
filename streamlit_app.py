@@ -13,11 +13,8 @@ def load_json_database(file_path):
         data = json.load(file)
     return data
 
-# Specify the path to the JSON data file
-json_file_path = 'crop_data.json'  # Change this to the path of your JSON file
-
 # Load crop data from JSON file
-crop_data = load_json_database(json_file_path)
+crop_data = load_json_database('crop_data.json')
 
 # Cache the model and tokenizer to optimize memory usage
 @st.cache_resource
@@ -35,28 +32,27 @@ def load_embedding_model():
 embedding_model = load_embedding_model()
 model, tokenizer = load_model()
 
-# Function to generate embeddings for data contexts
+# Generate embeddings for crop contexts
 @st.cache_resource
-def generate_embeddings(data):
+def generate_crop_embeddings(crop_data):
     embeddings = {}
-    for key, details in data.items():
-        context = generate_context(key, details)
-        embeddings[key] = embedding_model.encode(context, convert_to_tensor=True)
+    for crop, details in crop_data.items():
+        context = f"""
+        Crop Name: {details.get('name', 'N/A')}
+        Planting Season: {details.get('planting_season', 'N/A')}
+        Harvest Time: {details.get('harvest_time', 'N/A')}
+        Soil Type: {details.get('soil_type', 'N/A')}
+        Soil Preparation: {details.get('soil_preparation', 'N/A')}
+        Watering Frequency: {details.get('watering_frequency', 'N/A')}
+        Fertilization Schedule: {details.get('fertilization_schedule', 'N/A')}
+        Pests and Diseases: {', '.join(details.get('pests_diseases', []))}
+        Pest Management: {details.get('pest_management', 'N/A')}
+        Harvesting Techniques: {details.get('harvesting_techniques', 'N/A')}
+        """
+        embeddings[crop] = embedding_model.encode(context, convert_to_tensor=True)
     return embeddings
 
-# Function to generate context from details
-def generate_context(crop_name, details):
-    context = [f"Crop Name: {crop_name}"]
-    if isinstance(details, dict):
-        for key, value in details.items():
-            if isinstance(value, list):
-                value = ', '.join(map(str, value))
-            elif isinstance(value, dict):
-                value = generate_context(crop_name, value)  # Recursively handle nested dictionaries
-            context.append(f"{key.replace('_', ' ').title()}: {value}")
-    else:
-        context.append(str(details))
-    return '\n'.join(context)
+crop_embeddings = generate_crop_embeddings(crop_data)
 
 # Function to measure memory usage
 def memory_usage():
@@ -67,30 +63,75 @@ def memory_usage():
 # Measure memory usage after loading the model
 model_memory_usage = memory_usage()
 
-# Function to find the most relevant context based on the question
+# Function to find the most relevant crop context based on the question
 @st.cache_data
-def find_relevant_context(question, _embeddings):
+def find_relevant_crop_context(question, _crop_embeddings):
     question_embedding = embedding_model.encode(question, convert_to_tensor=True)
-    cosine_scores = util.pytorch_cos_sim(question_embedding, torch.stack(list(_embeddings.values())))
+    cosine_scores = util.pytorch_cos_sim(question_embedding, torch.stack(list(_crop_embeddings.values())))
     best_match_index = torch.argmax(cosine_scores).item()
-    best_match_key = list(_embeddings.keys())[best_match_index]
-    return best_match_key, crop_data[best_match_key]
+    best_match_crop = list(_crop_embeddings.keys())[best_match_index]
+    return crop_data[best_match_crop]
 
-# Function to determine question type
-def determine_question_type(question, keyword_mapping):
+# Improved function to automatically determine question type
+def determine_question_type(question):
     question = question.lower()
-    for question_type, keywords in keyword_mapping.items():
-        if any(keyword in question for keyword in keywords):
-            return question_type
-    return "Step-by-Step Guide"  # Default to step-by-step if no keywords match
-
-# Function to get the template for the given question type
-def get_template(question_type, template_mapping):
-    return template_mapping.get(question_type, template_mapping["Step-by-Step Guide"])
+    if any(keyword in question for keyword in ["how", "grow", "plant", "steps", "step-by-step"]):
+        return "Step-by-Step Guide"
+    elif any(keyword in question for keyword in ["issues", "problems", "diseases", "pests"]):
+        return "Common Issues"
+    elif any(keyword in question for keyword in ["best practices", "tips", "guidelines", "recommendations"]):
+        return "Best Practices"
+    elif any(keyword in question for keyword in ["watering", "irrigation", "water schedule"]):
+        return "Watering Schedule"
+    elif any(keyword in question for keyword in ["fertilization", "fertilizer", "feeding", "nutrition"]):
+        return "Fertilization Tips"
+    elif any(keyword in question for keyword in ["harvest", "harvesting", "pick", "picking"]):
+        return "Harvest Timing"
+    else:
+        return "Step-by-Step Guide"  # Default to step-by-step if no keywords match
 
 # Function to generate text based on input question and context
-def generate_paragraph(template, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping):
-    input_text = template.format(question=question, context=context)
+def generate_paragraph(question_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping):
+    templates = {
+        "Step-by-Step Guide": (
+            f"Please provide a detailed, step-by-step guide on how to grow the specified crop based on the following question and context.\n\n"
+            f"Question: {question}\n\n"
+            f"Context: {context}\n\n"
+            f"Steps:"
+        ),
+        "Common Issues": (
+            f"Please provide a detailed explanation of common issues and their solutions for growing the specified crop based on the following question and context.\n\n"
+            f"Question: {question}\n\n"
+            f"Context: {context}\n\n"
+            f"Issues and Solutions:"
+        ),
+        "Best Practices": (
+            f"Please provide a detailed list of best practices for growing the specified crop based on the following question and context.\n\n"
+            f"Question: {question}\n\n"
+            f"Context: {context}\n\n"
+            f"Best Practices:"
+        ),
+        "Watering Schedule": (
+            f"Please provide a detailed watering schedule for the specified crop based on the following question and context.\n\n"
+            f"Question: {question}\n\n"
+            f"Context: {context}\n\n"
+            f"Watering Schedule:"
+        ),
+        "Fertilization Tips": (
+            f"Please provide detailed fertilization tips for the specified crop based on the following question and context.\n\n"
+            f"Question: {question}\n\n"
+            f"Context: {context}\n\n"
+            f"Fertilization Tips:"
+        ),
+        "Harvest Timing": (
+            f"Please provide detailed harvest timing information for the specified crop based on the following question and context.\n\n"
+            f"Question: {question}\n\n"
+            f"Context: {context}\n\n"
+            f"Harvest Timing:"
+        )
+    }
+    
+    input_text = templates.get(question_type, templates["Step-by-Step Guide"])
     inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
     
     # Measure memory before generation
@@ -120,63 +161,26 @@ def format_output(output):
     return formatted_output
 
 # Streamlit UI
-st.title("Generalized Data Guide Generator")
+st.title("Crop Growing Guide Generator")
 st.write("Enter your question to generate a detailed guide.")
 
-# Load embeddings once after the app starts
-embeddings = generate_embeddings(crop_data)
-
-question = st.text_input("Question", value="How to grow tomato?", key="question")
-
-st.sidebar.title("Keyword and Template Configuration")
-
-# User-defined keyword and template mappings
-keyword_mapping = {}
-template_mapping = {}
-
-st.sidebar.subheader("Define question types and keywords")
-question_types = st.sidebar.text_area(
-    "Format: Type: keyword1, keyword2, ...",
-    value="Step-by-Step Guide: how, steps, process, guide\n"
-          "Common Issues: issues, problems, errors, troubleshoot\n"
-          "Best Practices: best practices, tips, recommendations, guidelines\n"
-          "Watering Schedule: watering, irrigation, water schedule\n"
-          "Fertilization Tips: fertilization, fertilizer, feeding, nutrition\n"
-          "Harvest Timing: harvest, timing, pick, picking\n"
-          "General Information: information, details, overview"
-)
-
-for line in question_types.split('\n'):
-    if ':' in line:
-        q_type, keywords = line.split(':', 1)
-        keyword_mapping[q_type.strip()] = [k.strip() for k in keywords.split(',')]
-
-st.sidebar.subheader("Define templates for question types")
-templates_text = st.sidebar.text_area(
-    "Format: Type: Template",
-    value="Step-by-Step Guide: Please provide a detailed, step-by-step guide on how to grow the specified crop based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\n"
-          "Steps:\n1. Planting season and soil preparation.\n2. Watering and fertilization.\n3. Pest management.\n4. Harvesting techniques.\n"
-          "Common Issues: Please provide a detailed explanation of common issues and their solutions for growing the specified crop based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\n"
-          "Issues and Solutions:\n"
-          "Best Practices: Please provide a detailed list of best practices for growing the specified crop based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\n"
-          "Best Practices:\n"
-          "Watering Schedule: Please provide a detailed watering schedule for the specified crop based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\n"
-          "Watering Schedule:\n"
-          "Fertilization Tips: Please provide detailed fertilization tips for the specified crop based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\n"
-          "Fertilization Tips:\n"
-          "Harvest Timing: Please provide detailed harvest timing information for the specified crop based on the following question and context.\n\nQuestion: {question}\n\nContext: {context}\n\n"
-          "Harvest Timing:\n"
-)
-
-for line in templates_text.split('\n'):
-    if ':' in line:
-        q_type, template = line.split(':', 1)
-        template_mapping[q_type.strip()] = template.strip()
+question = st.text_input("Question", value="How to grow tomatoes?", key="question")
 
 if question:
-    crop_name, relevant_context = find_relevant_context(question, embeddings)
-    context = generate_context(crop_name, relevant_context)
-    question_type = determine_question_type(question, keyword_mapping)
+    relevant_context = find_relevant_crop_context(question, crop_embeddings)
+    context = f"""
+    Crop Name: {relevant_context.get('name', 'N/A')}
+    Planting Season: {relevant_context.get('planting_season', 'N/A')}
+    Harvest Time: {relevant_context.get('harvest_time', 'N/A')}
+    Soil Type: {relevant_context.get('soil_type', 'N/A')}
+    Soil Preparation: {relevant_context.get('soil_preparation', 'N/A')}
+    Watering Frequency: {relevant_context.get('watering_frequency', 'N/A')}
+    Fertilization Schedule: {relevant_context.get('fertilization_schedule', 'N/A')}
+    Pests and Diseases: {', '.join(relevant_context.get('pests_diseases', []))}
+    Pest Management: {relevant_context.get('pest_management', 'N/A')}
+    Harvesting Techniques: {relevant_context.get('harvesting_techniques', 'N/A')}
+    """
+    question_type = determine_question_type(question)
 else:
     context = ""
     question_type = "Step-by-Step Guide"
@@ -189,15 +193,14 @@ st.markdown(f"```{context}```")
 
 # Additional controls for model.generate parameters in the sidebar
 st.sidebar.title("Model Parameters")
-max_length = st.sidebar.slider("Max Length", 50, 500, 200)  # Adjusted max_length
-num_beams = st.sidebar.slider("Number of Beams", 1, 10, 2)  # Adjusted num_beams
+max_length = st.sidebar.slider("Max Length", 50, 500, 300)
+num_beams = st.sidebar.slider("Number of Beams", 1, 10, 5)
 no_repeat_ngram_size = st.sidebar.slider("No Repeat N-Gram Size", 1, 10, 2)
 early_stopping = st.sidebar.checkbox("Early Stopping", value=True)
 
 if question:
     with st.spinner("Generating..."):
-        template = get_template(question_type, template_mapping)
-        guide, memory_footprint = generate_paragraph(template, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping)
+        guide, memory_footprint = generate_paragraph(question_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping)
     st.subheader("Generated Guide")
     st.write(guide)
     
