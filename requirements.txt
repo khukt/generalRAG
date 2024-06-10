@@ -6,3 +6,4 @@ spacy
 psutil
 sentencepiece
 matplotlib
+requests
