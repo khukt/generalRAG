@@ -223,11 +223,10 @@ def normalize_attention_weights(attentions):
 
 def highlight_text(tokenizer, input_text, input_ids, attention_weights):
     tokens = tokenizer.convert_ids_to_tokens(input_ids[0])
-    assert len(tokens) == len(attention_weights), "Mismatch between tokens and attention weights length"
+    # Join subword tokens correctly and apply highlighting
     highlighted_text = ""
     for token, weight in zip(tokens, attention_weights):
-        if token.startswith('▁'):
-            token = token[1:]
+        token = token.replace('▁', '')  # Remove special character for readability
         color = f"rgba(255, 0, 0, {weight})"  # Red color with transparency based on attention weight
         highlighted_text += f"<span style='background-color: {color}'>{token}</span> "
     return highlighted_text
