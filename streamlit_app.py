@@ -1,15 +1,11 @@
 import streamlit as st
-import time
 import torch
 from transformers import T5ForConditionalGeneration, T5Tokenizer
 from sentence_transformers import SentenceTransformer, util
 import json
-import os
 import psutil
-
-# Responsible AI and Logging
 import logging
-from datetime import datetime
+import time
 
 # Setup logger
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -31,7 +27,7 @@ def log_performance(func):
     return wrapper
 
 def memory_usage():
-    process = psutil.Process(os.getpid())
+    process = psutil.Process()
     mem_info = process.memory_info()
     return mem_info.rss / (1024 ** 2)  # Convert bytes to MB
 
@@ -156,6 +152,12 @@ def generate_text(model, tokenizer, task_type, question, context, max_length, nu
             input_text = f"paraphrase: {input_text}"
         elif task_type == "Summarization":
             input_text = f"summarize: {input_text}"
+        elif task_type == "Translation":
+            input_text = f"translate English to German: {input_text}"
+        elif task_type == "Question Answering":
+            input_text = f"question: {question} context: {context}"
+        elif task_type == "NER":
+            input_text = f"ner: {input_text}"
 
         inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
         
@@ -212,11 +214,13 @@ st.sidebar.title("Configuration")
 task_type = st.sidebar.selectbox(
     "Select Task",
     [
-        "Generation",
+        "Text Generation",
+        "Summarization",
+        "Translation",
+        "Question Answering",
         "Paraphrasing",
-        "Summarization"
-    ],
-    index=0
+        "NER"
+    ]
 )
 
 use_template = st.sidebar.checkbox("Use Template", value=True)
