@@ -1,5 +1,6 @@
 import streamlit as st
 from transformers import T5ForConditionalGeneration, T5Tokenizer
+from sentence_transformers import SentenceTransformer, util
 import json
 import torch
 import gc
@@ -67,6 +68,20 @@ def memory_usage():
     mem_info = process.memory_info()
     return mem_info.rss / (1024 ** 2)  # Convert bytes to MB
 
+# Load embedding model
+@st.cache_resource
+def load_embedding_model():
+    return SentenceTransformer('all-MiniLM-L6-v2')
+
+# Generate embeddings for contexts in batches
+@st.cache_resource
+def generate_embeddings(data):
+    keys = list(data.keys())
+    contexts = [generate_context(key, data[key]) for key in keys]
+    embedding_model = load_embedding_model()
+    context_embeddings = embedding_model.encode(contexts, convert_to_tensor=True)
+    return dict(zip(keys, context_embeddings))
+
 # Function to build in-memory graph
 def build_graph(data):
     graph = {}
@@ -116,12 +131,17 @@ graph = build_graph(crop_data)
 question = st.text_input("Question", value="How to grow tomatoes?", key="question")
 
 if question:
-    # Query the graph for relevant context
-    relevant_crop_details = query_graph(graph, question)
+    # Retrieve relevant context using embeddings
+    embedding_model = load_embedding_model()
+    embeddings = generate_embeddings(crop_data)
+    question_embedding = embedding_model.encode(question, convert_to_tensor=True)
+    cosine_scores = util.pytorch_cos_sim(question_embedding, torch.stack(list(embeddings.values())))
+    best_match_index = torch.argmax(cosine_scores).item()
+    relevant_crop = list(crop_data.keys())[best_match_index]
+    relevant_crop_details = crop_data[relevant_crop]
 
     if relevant_crop_details:
-        crop_name = question.split()[-1].capitalize()  # Simple heuristic to get the crop name
-        context = generate_context(crop_name, relevant_crop_details)
+        context = generate_context(relevant_crop, relevant_crop_details)
         st.subheader("Generated Context")
         st.write(f"```{context}```")
 
