@@ -153,21 +153,21 @@ def load_templates(file_path='templates.json'):
 
 # Function to save templates
 def save_templates(templates, file_path='templates.json'):
-    with open(file_path, 'w') as file:
+    with open(file_path, 'w') as file):
         json.dump(templates, file, indent=4)
 
 # Load existing templates or default ones
 templates = load_templates()
 
 # Function to perform paraphrasing
-def paraphrase(model, tokenizer, sentence, max_length, num_beams, no_repeat_ngram_size, early_stopping, candidate_phrases):
+def paraphrase(model, tokenizer, sentence, max_length, num_beams, no_repeat_ngram_size, early_stopping):
     if isinstance(model, SentenceTransformer):
         # Use the SentenceTransformer for paraphrasing
-        sentence_embedding = model.encode([sentence], convert_to_tensor=True)
-        candidate_embeddings = model.encode(candidate_phrases, convert_to_tensor=True)
-        cosine_scores = util.pytorch_cos_sim(sentence_embedding, candidate_embeddings)[0]
-        best_match_index = torch.argmax(cosine_scores).item()
-        return candidate_phrases[best_match_index], 0
+        paraphrases = model.encode([sentence], convert_to_tensor=True)
+        # Decode embeddings to sentences (using cosine similarity)
+        paraphrases = util.paraphrase_mining(model, [sentence])
+        paraphrased_sentence = paraphrases[0][2]
+        return paraphrased_sentence, 0
     else:
         input_text = f"paraphrase: {sentence}"
         inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
@@ -197,15 +197,6 @@ def format_output(output):
     if not formatted_output.endswith('.'):
         formatted_output += '.'
     return formatted_output
-
-# Candidate paraphrases for demonstration purposes
-candidate_phrases = [
-    "What is the best way to grow tomatoes?",
-    "Can you tell me how to plant tomatoes?",
-    "I need advice on growing tomatoes.",
-    "What are the steps to plant tomatoes?",
-    "How do I cultivate tomatoes?"
-]
 
 # Streamlit UI
 st.title("Paraphrasing Task")
@@ -254,7 +245,7 @@ if st.sidebar.button("Clear Cache and Reload Models"):
 
 if sentence:
     with st.spinner("Generating paraphrase..."):
-        paraphrased_sentence, memory_footprint = paraphrase(model, tokenizer, sentence, max_length, num_beams, no_repeat_ngram_size, early_stopping, candidate_phrases)
+        paraphrased_sentence, memory_footprint = paraphrase(model, tokenizer, sentence, max_length, num_beams, no_repeat_ngram_size, early_stopping)
     st.subheader("Generated Paraphrase")
     st.write(paraphrased_sentence)
     
@@ -274,3 +265,9 @@ if sentence:
     context = generate_context(best_match_key, relevant_context)
     st.subheader("Relevant Context")
     st.markdown(f"```{context}```")
+    
+    # Paraphrase the relevant context
+    with st.spinner("Paraphrasing context..."):
+        paraphrased_context, _ = paraphrase(model, tokenizer, context, max_length, num_beams, no_repeat_ngram_size, early_stopping)
+    st.subheader("Paraphrased Context")
+    st.write(paraphrased_context)
