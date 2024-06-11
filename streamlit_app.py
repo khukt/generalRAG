@@ -1,4 +1,5 @@
 import streamlit as st
+from transformers import T5ForConditionalGeneration, T5Tokenizer, GPT2LMHeadModel, GPT2Tokenizer
 from sentence_transformers import SentenceTransformer, util
 import psutil
 import os
@@ -6,38 +7,49 @@ import json
 import torch
 import gc
 
-# Function to clear memory and cache
-def clear_memory_cache():
+# Function to clear previous model from memory
+def clear_model_from_memory():
     if "model" in st.session_state:
         del st.session_state.model
+    if "tokenizer" in st.session_state:
+        del st.session_state.tokenizer
     torch.cuda.empty_cache()
     gc.collect()
 
-# Function to load the model
-@st.cache_resource(show_spinner=False)
+# Cache the model and tokenizer to optimize memory usage
+@st.cache_resource
 def load_model(model_name):
-    clear_memory_cache()
-    model = SentenceTransformer(model_name)
-    return model
+    clear_model_from_memory()
+    if "t5" in model_name or "flan" in model_name:
+        model = T5ForConditionalGeneration.from_pretrained(model_name)
+        tokenizer = T5Tokenizer.from_pretrained(model_name, legacy=False)
+    elif "gpt2" in model_name:
+        model = GPT2LMHeadModel.from_pretrained(model_name)
+        tokenizer = GPT2Tokenizer.from_pretrained(model_name)
+    else:
+        raise ValueError(f"Model {model_name} is not supported.")
+    st.session_state.model = model
+    st.session_state.tokenizer = tokenizer
+    return model, tokenizer
 
-# Function to load JSON database
-@st.cache_resource(show_spinner=False)
+# Load JSON database
+@st.cache_resource
 def load_json_database(file_path):
     with open(file_path, 'r') as file:
         data = json.load(file)
     return data
 
-# Function to load crop data
-@st.cache_resource(show_spinner=False)
+# Load crop data from JSON file
+@st.cache_resource
 def get_crop_data():
     return load_json_database('crop_data.json')
 
-# Function to load embedding model
-@st.cache_resource(show_spinner=False)
+# Load embedding model
+@st.cache_resource
 def load_embedding_model():
     return SentenceTransformer('all-MiniLM-L6-v2')
 
-# Function to generate context from details
+# General function to generate context from details
 def generate_context(key, details):
     context_lines = [f"{key.capitalize()}:"]
     for k, v in details.items():
@@ -48,8 +60,8 @@ def generate_context(key, details):
         context_lines.append(f"{k.replace('_', ' ').title()}: {v}")
     return '\n'.join(context_lines)
 
-# Function to generate embeddings for contexts
-@st.cache_resource(show_spinner=False)
+# Generate embeddings for contexts in batches
+@st.cache_resource
 def generate_embeddings(data):
     keys = list(data.keys())
     contexts = [generate_context(key, data[key]) for key in keys]
@@ -66,16 +78,24 @@ def memory_usage():
 model_memory_usage = memory_usage()
 
 # Function to find the most relevant context based on the question
-@st.cache_data(show_spinner=False)
+@st.cache_data
 def find_relevant_context(question, _embeddings):
     question_embedding = embedding_model.encode(question, convert_to_tensor=True)
     cosine_scores = util.pytorch_cos_sim(question_embedding, torch.stack(list(_embeddings.values())))
     best_match_index = torch.argmax(cosine_scores).item()
     best_match_key = list(_embeddings.keys())[best_match_index]
-    return crop_data[best_match_key], best_match_key
+    return crop_data[best_match_key]
+
+# Improved function to automatically determine question type
+def determine_question_type(question, templates):
+    question = question.lower()
+    for question_type, details in templates.items():
+        if any(keyword in question for keyword in details.get("keywords", [])):
+            return question_type
+    return "Planting Guide"  # Default to planting guide if no keywords match
 
 # Function to load templates
-@st.cache_resource(show_spinner=False)
+@st.cache_resource
 def load_templates(file_path='templates.json'):
     if os.path.exists(file_path):
         with open(file_path, 'r') as file:
@@ -146,66 +166,145 @@ def save_templates(templates, file_path='templates.json'):
 # Load existing templates or default ones
 templates = load_templates()
 
-# Function to perform paraphrasing using SentenceTransformer
-def paraphrase(model, sentence):
-    # Generate paraphrases using sentence embeddings and cosine similarity
-    sentences = [sentence, sentence + '.', sentence + '?', 'Please tell me ' + sentence]
-    paraphrases = util.paraphrase_mining(model, sentences, top_k=5)
-    if paraphrases:
-        paraphrased_sentence = paraphrases[0][2]
-    else:
-        paraphrased_sentence = "No paraphrase found."
-    return paraphrased_sentence
+# Function to generate text based on input question and context
+def generate_text(model, tokenizer, task_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping):
+    input_text = ""
+    if task_type == "Generation":
+        input_text = templates[question_type]["template"].format(question=question, context=context)
+    elif task_type == "Paraphrasing":
+        input_text = f"paraphrase: {context} {question}"
+    elif task_type == "Summarization":
+        input_text = f"summarize: {context} {question}"
+
+    inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
+    
+    # Measure memory before generation
+    memory_before = memory_usage()
+    
+    outputs = model.generate(
+        inputs, 
+        max_length=max_length, 
+        num_beams=num_beams, 
+        no_repeat_ngram_size=no_repeat_ngram_size, 
+        early_stopping=early_stopping
+    )
+    
+    # Measure memory after generation
+    memory_after = memory_usage()
+    
+    memory_footprint = memory_after - memory_before
+    answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    return format_output(answer), memory_footprint
+
+# Function to format the output into a well-written paragraph
+def format_output(output):
+    sentences = output.split('. ')
+    formatted_output = '. '.join(sentence.capitalize() for sentence in sentences if sentence)
+    if not formatted_output.endswith('.'):
+        formatted_output += '.'
+    return formatted_output
 
 # Streamlit UI
-st.title("Paraphrasing Task")
-st.write("Enter a sentence to generate its paraphrase.")
+st.title("Crop Growing Guide Generator")
+st.write("Enter your question to generate a detailed guide.")
 
-# Set model name for SentenceTransformer
-model_name = "sentence-transformers/paraphrase-MiniLM-L6-v2"
+# Add a selectbox for model selection
+model_name = st.selectbox(
+    "Select Model",
+    [
+        "google/flan-t5-small",
+        "google/flan-t5-base"
+    ],
+    index=1
+)
+
+# Add a selectbox for task selection
+task_type = st.selectbox(
+    "Select Task",
+    [
+        "Generation",
+        "Paraphrasing",
+        "Summarization"
+    ],
+    index=0
+)
 
 # Clear previous model cache if a new model is selected
 if "previous_model_name" in st.session_state and st.session_state.previous_model_name != model_name:
-    st.cache_data.clear()
-    st.cache_resource.clear()
-    clear_memory_cache()
+    load_model.clear()
+    clear_model_from_memory()
 
 st.session_state.previous_model_name = model_name
 
 crop_data = get_crop_data()
 embedding_model = load_embedding_model()
-model = load_model(model_name)
+model, tokenizer = load_model(model_name)
 embeddings = generate_embeddings(crop_data)
 
-sentence = st.text_input("Sentence", value="How to grow tomatoes?", key="sentence")
+question = st.text_input("Question", value="How to grow tomatoes?", key="question")
 
-# Buttons to clear cache and reload models
+if question:
+    relevant_context = find_relevant_context(question, embeddings)
+    context = generate_context("Crop", relevant_context)
+    question_type = determine_question_type(question, templates)
+else:
+    context = ""
+    question_type = "Planting Guide"
+
+st.subheader("Detected Question Type")
+st.write(f"**{question_type}**")
+
+st.subheader("Context")
+st.markdown(f"```{context}```")
+
+# Additional controls for model.generate parameters in the sidebar
+st.sidebar.title("Model Parameters")
+max_length = st.sidebar.slider("Max Length", 50, 500, 300)
+num_beams = st.sidebar.slider("Number of Beams", 1, 10, 5)
+no_repeat_ngram_size = st.sidebar.slider("No Repeat N-Gram Size", 1, 10, 2)
+early_stopping = st.sidebar.checkbox("Early Stopping", value=True)
+
+# Template configuration
+st.sidebar.title("Template Configuration")
+selected_question_type = st.sidebar.selectbox("Select Question Type", list(templates.keys()))
+
+template_input = st.sidebar.text_area("Template", value=templates[selected_question_type]["template"])
+keywords_input = st.sidebar.text_area("Keywords (comma separated)", value=", ".join(templates[selected_question_type]["keywords"]))
+if st.sidebar.button("Save Template"):
+    templates[selected_question_type]["template"] = template_input
+    templates[selected_question_type]["keywords"] = [keyword.strip() for keyword in keywords_input.split(',')]
+    save_templates(templates)
+    st.sidebar.success("Template saved successfully!")
+
+# Buttons to clear cache and reload models, embeddings, and templates
 st.sidebar.title("Cache Management")
 if st.sidebar.button("Clear Cache and Reload Models"):
-    st.cache_data.clear()
-    st.cache_resource.clear()
+    load_model.clear()
+    load_embedding_model.clear()
+    generate_embeddings.clear()
     st.experimental_rerun()
 
-if sentence:
-    with st.spinner("Generating paraphrase..."):
-        paraphrased_sentence = paraphrase(model, sentence)
-    st.subheader("Generated Paraphrase")
-    st.write(paraphrased_sentence)
+if st.sidebar.button("Clear Cache and Reload Data"):
+    get_crop_data.clear()
+    generate_embeddings.clear()
+    st.experimental_rerun()
+
+if st.sidebar.button("Clear Cache and Reload Templates"):
+    load_templates.clear()
+    st.experimental_rerun()
+
+if question:
+    with st.spinner("Generating..."):
+        guide, memory_footprint = generate_text(model, tokenizer, task_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping)
+    st.subheader("Generated Guide")
+    st.write(guide)
     
     # Calculate total memory usage and other memory usage
     total_memory_usage = memory_usage()
-    st.subheader("Memory Usage Details")
-    st.write(f"Total memory usage: {total_memory_usage:.2f} MB")
-
-# Function to find the most relevant context based on the question
-if sentence:
-    relevant_context, best_match_key = find_relevant_context(sentence, embeddings)
-    context = generate_context(best_match_key, relevant_context)
-    st.subheader("Relevant Context")
-    st.markdown(f"```{context}```")
+    other_memory_usage = total_memory_usage - model_memory_usage - memory_footprint
     
-    # Paraphrase the relevant context
-    with st.spinner("Paraphrasing context..."):
-        paraphrased_context = paraphrase(model, context)
-    st.subheader("Paraphrased Context")
-    st.write(paraphrased_context)
+    st.subheader("Memory Usage Details")
+    st.write(f"Model memory usage: {model_memory_usage:.2f} MB")
+    st.write(f"Memory used during generation: {memory_footprint:.2f} MB")
+    st.write(f"Other memory usage: {other_memory_usage:.2f} MB")
+    st.write(f"Total memory usage: {total_memory_usage:.2f} MB")
