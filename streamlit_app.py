@@ -228,6 +228,7 @@ def highlight_text(tokenizer, input_text, input_ids, attention_weights):
     for token, weight in zip(tokens, attention_weights):
         token = token.replace('▁', '')  # Remove special character for readability
         color = f"rgba(255, 0, 0, {weight})"  # Red color with transparency based on attention weight
+        st.write(color)
         highlighted_text += f"<span style='background-color: {color}'>{token}</span> "
     return highlighted_text
 
