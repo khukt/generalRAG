@@ -1,6 +1,6 @@
 import streamlit as st
 from transformers import T5ForConditionalGeneration, T5Tokenizer, GPT2LMHeadModel, GPT2Tokenizer
-from sentence_transformers import SentenceTransformer
+from sentence_transformers import SentenceTransformer, util
 import psutil
 import os
 import json
@@ -87,7 +87,7 @@ def find_relevant_context(question, _embeddings):
     cosine_scores = util.pytorch_cos_sim(question_embedding, torch.stack(list(_embeddings.values())))
     best_match_index = torch.argmax(cosine_scores).item()
     best_match_key = list(_embeddings.keys())[best_match_index]
-    return crop_data[best_match_key]
+    return crop_data[best_match_key], best_match_key
 
 # Function to load templates
 @st.cache_resource
@@ -164,8 +164,9 @@ templates = load_templates()
 # Function to perform paraphrasing
 def paraphrase(model, tokenizer, sentence, max_length, num_beams, no_repeat_ngram_size, early_stopping):
     if isinstance(model, SentenceTransformer):
-        paraphrased_text = model.encode([sentence], convert_to_tensor=True)
-        return paraphrased_text[0].tolist(), 0
+        # For SentenceTransformer model, use the paraphrase task
+        paraphrases = model.encode([sentence])
+        return paraphrases[0], 0
     else:
         input_text = f"paraphrase: {sentence}"
         inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
@@ -219,7 +220,10 @@ if "previous_model_name" in st.session_state and st.session_state.previous_model
 
 st.session_state.previous_model_name = model_name
 
+crop_data = get_crop_data()
+embedding_model = load_embedding_model()
 model, tokenizer = load_model(model_name)
+embeddings = generate_embeddings(crop_data)
 
 sentence = st.text_input("Sentence", value="How to grow tomatoes?", key="sentence")
 
@@ -240,7 +244,10 @@ if sentence:
     with st.spinner("Generating paraphrase..."):
         paraphrased_sentence, memory_footprint = paraphrase(model, tokenizer, sentence, max_length, num_beams, no_repeat_ngram_size, early_stopping)
     st.subheader("Generated Paraphrase")
-    st.write(paraphrased_sentence)
+    if isinstance(paraphrased_sentence, torch.Tensor):
+        st.write(paraphrased_sentence.tolist())
+    else:
+        st.write(paraphrased_sentence)
     
     # Calculate total memory usage and other memory usage
     total_memory_usage = memory_usage()
@@ -251,3 +258,10 @@ if sentence:
     st.write(f"Memory used during generation: {memory_footprint:.2f} MB")
     st.write(f"Other memory usage: {other_memory_usage:.2f} MB")
     st.write(f"Total memory usage: {total_memory_usage:.2f} MB")
+
+# Function to find the most relevant context based on the question
+if sentence:
+    relevant_context, best_match_key = find_relevant_context(sentence, embeddings)
+    context = generate_context(best_match_key, relevant_context)
+    st.subheader("Relevant Context")
+    st.markdown(f"```{context}```")
