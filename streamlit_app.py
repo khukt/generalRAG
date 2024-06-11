@@ -3,6 +3,8 @@ from transformers import T5ForConditionalGeneration, T5Tokenizer
 import json
 import torch
 import gc
+import psutil
+import os
 
 # Sample JSON data
 crop_data_json = '''
@@ -58,6 +60,12 @@ def load_model(model_name):
     st.session_state.model = model
     st.session_state.tokenizer = tokenizer
     return model, tokenizer
+
+# Function to measure memory usage
+def memory_usage():
+    process = psutil.Process(os.getpid())
+    mem_info = process.memory_info()
+    return mem_info.rss / (1024 ** 2)  # Convert bytes to MB
 
 # Function to generate context from JSON data
 def generate_context(crop_name, crop_details):
