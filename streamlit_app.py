@@ -239,4 +239,102 @@ def format_output(output):
 
 # Streamlit UI
 st.title("Crop Growing Guide Generator")
+#Let's complete the Streamlit UI and make sure the full script is properly indented and functional:
+
+
+# Streamlit UI
+st.title("Crop Growing Guide Generator")
 st.write("Enter your question to generate a detailed guide.")
+
+# Add a selectbox for model selection
+model_name = st.selectbox(
+    "Select Model",
+    [
+        "google/flan-t5-small",
+        "google/flan-t5-base"
+    ],
+    index=1
+)
+
+# Clear previous model cache if a new model is selected
+if "previous_model_name" in st.session_state and st.session_state.previous_model_name != model_name:
+    load_model.clear()
+    clear_model_from_memory()
+
+st.session_state.previous_model_name = model_name
+
+crop_data = get_crop_data()
+embedding_model = load_embedding_model()
+model, tokenizer = load_model(model_name)
+embeddings = generate_embeddings(crop_data)
+
+# Create Knowledge Graph from crop data
+knowledge_graph = create_knowledge_graph(crop_data)
+
+question = st.text_input("Question", value="How to grow tomatoes?", key="question")
+
+if question:
+    relevant_context = find_relevant_context_graph(question, knowledge_graph)
+    context = generate_context("Crop", relevant_context)
+    question_type = determine_question_type(question, templates)
+else:
+    context = ""
+    question_type = "Planting Guide"
+
+st.subheader("Detected Question Type")
+st.write(f"**{question_type}**")
+
+st.subheader("Context")
+st.markdown(f"```{context}```")
+
+# Additional controls for model.generate parameters in the sidebar
+st.sidebar.title("Model Parameters")
+max_length = st.sidebar.slider("Max Length", 50, 500, 300)
+num_beams = st.sidebar.slider("Number of Beams", 1, 10, 5)
+no_repeat_ngram_size = st.sidebar.slider("No Repeat N-Gram Size", 1, 10, 2)
+early_stopping = st.sidebar.checkbox("Early Stopping", value=True)
+
+# Template configuration
+st.sidebar.title("Template Configuration")
+selected_question_type = st.sidebar.selectbox("Select Question Type", list(templates.keys()))
+
+template_input = st.sidebar.text_area("Template", value=templates[selected_question_type]["template"])
+keywords_input = st.sidebar.text_area("Keywords (comma separated)", value=", ".join(templates[selected_question_type]["keywords"]))
+if st.sidebar.button("Save Template"):
+    templates[selected_question_type]["template"] = template_input
+    templates[selected_question_type]["keywords"] = [keyword.strip() for keyword in keywords_input.split(',')]
+    save_templates(templates)
+    st.sidebar.success("Template saved successfully!")
+
+# Buttons to clear cache and reload models, embeddings, and templates
+st.sidebar.title("Cache Management")
+if st.sidebar.button("Clear Cache and Reload Models"):
+    load_model.clear()
+    load_embedding_model.clear()
+    generate_embeddings.clear()
+    st.experimental_rerun()
+
+if st.sidebar.button("Clear Cache and Reload Data"):
+    get_crop_data.clear()
+    generate_embeddings.clear()
+    st.experimental_rerun()
+
+if st.sidebar.button("Clear Cache and Reload Templates"):
+    load_templates.clear()
+    st.experimental_rerun()
+
+if question:
+    with st.spinner("Generating..."):
+        guide, memory_footprint = generate_paragraph(model, tokenizer, question_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping)
+    st.subheader("Generated Guide")
+    st.write(guide)
+    
+    # Calculate total memory usage and other memory usage
+    total_memory_usage = memory_usage()
+    other_memory_usage = total_memory_usage - model_memory_usage - memory_footprint
+    
+    st.subheader("Memory Usage Details")
+    st.write(f"Model memory usage: {model_memory_usage:.2f} MB")
+    st.write(f"Memory used during generation: {memory_footprint:.2f} MB")
+    st.write(f"Other memory usage: {other_memory_usage:.2f} MB")
+    st.write(f"Total memory usage: {total_memory_usage:.2f} MB")
