@@ -1,50 +1,72 @@
 import streamlit as st
-from transformers import T5ForConditionalGeneration, T5Tokenizer, AutoModelForSeq2SeqLM, AutoTokenizer, GPT2LMHeadModel, GPT2Tokenizer
+from transformers import T5ForConditionalGeneration, T5Tokenizer, GPT2LMHeadModel, GPT2Tokenizer, pipeline
 from sentence_transformers import SentenceTransformer, util
+import psutil
+import os
 import json
 import torch
 import gc
-import psutil
-import os
-import time
 
-# Function to clear previous model from memory
+# Function to clear the model and tokenizer from memory
 def clear_model_from_memory():
     if "model" in st.session_state:
         del st.session_state.model
     if "tokenizer" in st.session_state:
         del st.session_state.tokenizer
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
+    torch.cuda.empty_cache()
     gc.collect()
 
-# Load the model and tokenizer with error handling
+# Cache the model and tokenizer to optimize memory usage
 @st.cache_resource
 def load_model(model_name):
     clear_model_from_memory()
-    try:
-        if model_name in ["google/flan-t5-small", "google/flan-t5-base"]:
-            model = T5ForConditionalGeneration.from_pretrained(model_name)
-            tokenizer = T5Tokenizer.from_pretrained(model_name, legacy=False)
-        elif model_name == "gpt2":
-            model = GPT2LMHeadModel.from_pretrained(model_name)
-            tokenizer = GPT2Tokenizer.from_pretrained(model_name)
-        else:
-            model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
-            tokenizer = AutoTokenizer.from_pretrained(model_name)
-        st.session_state.model = model
-        st.session_state.tokenizer = tokenizer
-        return model, tokenizer
-    except Exception as e:
-        st.error(f"Failed to load model {model_name}: {e}")
-        return None, None
+    if "t5" in model_name or "flan" in model_name:
+        model = T5ForConditionalGeneration.from_pretrained(model_name)
+        tokenizer = T5Tokenizer.from_pretrained(model_name, legacy=False)
+    elif "gpt2" in model_name:
+        model = GPT2LMHeadModel.from_pretrained(model_name)
+        tokenizer = GPT2Tokenizer.from_pretrained(model_name)
+    else:
+        raise ValueError(f"Model {model_name} is not supported.")
+    st.session_state.model = model
+    st.session_state.tokenizer = tokenizer
+    return model, tokenizer
 
-# Function to load JSON database
+# Load JSON database
 @st.cache_resource
 def load_json_database(file_path):
     with open(file_path, 'r') as file:
         data = json.load(file)
     return data
+
+# Load crop data from JSON file
+@st.cache_resource
+def get_crop_data():
+    return load_json_database('crop_data.json')
+
+# Load embedding model
+@st.cache_resource
+def load_embedding_model():
+    return SentenceTransformer('all-MiniLM-L6-v2')
+
+# General function to generate context from details
+def generate_context(key, details):
+    context_lines = [f"{key.capitalize()}:"]
+    for k, v in details.items():
+        if isinstance(v, list):
+            v = ', '.join(map(str, v))
+        elif isinstance(v, dict):
+            v = generate_context(k, v)  # Recursively handle nested dictionaries
+        context_lines.append(f"{k.replace('_', ' ').title()}: {v}")
+    return '\n'.join(context_lines)
+
+# Generate embeddings for contexts in batches
+@st.cache_resource
+def generate_embeddings(data):
+    keys = list(data.keys())
+    contexts = [generate_context(key, data[key]) for key in keys]
+    context_embeddings = embedding_model.encode(contexts, convert_to_tensor=True)
+    return dict(zip(keys, context_embeddings))
 
 # Function to measure memory usage
 def memory_usage():
@@ -52,153 +74,273 @@ def memory_usage():
     mem_info = process.memory_info()
     return mem_info.rss / (1024 ** 2)  # Convert bytes to MB
 
-# Function to measure computation time
-def measure_time(start_time):
-    return time.time() - start_time
+# Measure memory usage after loading the model
+model_memory_usage = memory_usage()
 
-# Load embedding model
+# Function to find the most relevant context based on the question
+@st.cache_data
+def find_relevant_context(question, _embeddings):
+    question_embedding = embedding_model.encode(question, convert_to_tensor=True)
+    cosine_scores = util.pytorch_cos_sim(question_embedding, torch.stack(list(_embeddings.values())))
+    best_match_index = torch.argmax(cosine_scores).item()
+    best_match_key = list(_embeddings.keys())[best_match_index]
+    return crop_data[best_match_key]
+
+# Function to automatically determine the question type
+def determine_question_type(question, templates):
+    question = question.lower()
+    for question_type, details in templates.items():
+        if any(keyword in question for keyword in details.get("keywords", [])):
+            return question_type
+    return "Planting Guide"  # Default to planting guide if no keywords match
+
+# Function to load templates from a JSON file
 @st.cache_resource
-def load_embedding_model():
-    return SentenceTransformer('all-MiniLM-L6-v2')
+def load_templates(file_path='templates.json'):
+    if os.path.exists(file_path):
+        with open(file_path, 'r') as file:
+            return json.load(file)
+    else:
+        return {
+            "Planting Guide": {
+                "template": (
+                    "Please provide a detailed guide on how to plant and grow the specified crop based on the following question and context.\n\n"
+                    "Question: {question}\n\n"
+                    "Context: {context}\n\n"
+                    "Guide:"
+                ),
+                "keywords": ["how", "grow", "plant", "cultivate"]
+            },
+            "Common Issues": {
+                "template": (
+                    "Please provide a detailed explanation of common issues and their solutions for growing the specified crop based on the following question and context.\n\n"
+                    "Question: {question}\n\n"
+                    "Context: {context}\n\n"
+                    "Issues and Solutions:"
+                ),
+                "keywords": ["issues", "problems", "diseases", "pests"]
+            },
+            "Best Practices": {
+                "template": (
+                    "Please provide a detailed list of best practices for growing the specified crop based on the following question and context.\n\n"
+                    "Question: {question}\n\n"
+                    "Context: {context}\n\n"
+                    "Best Practices:"
+                ),
+                "keywords": ["best practices", "tips", "guidelines", "recommendations"]
+            },
+            "Watering Schedule": {
+                "template": (
+                    "Please provide a detailed watering schedule for the specified crop based on the following question and context.\n\n"
+                    "Question: {question}\n\n"
+                    "Context: {context}\n\n"
+                    "Watering Schedule:"
+                ),
+                "keywords": ["watering", "irrigation", "water schedule"]
+            },
+            "Fertilization Tips": {
+                "template": (
+                    "Please provide detailed fertilization tips for the specified crop based on the following question and context.\n\n"
+                    "Question: {question}\n\n"
+                    "Context: {context}\n\n"
+                    "Fertilization Tips:"
+                ),
+                "keywords": ["fertilization", "fertilizer", "feeding", "nutrition"]
+            },
+            "Harvest Timing": {
+                "template": (
+                    "Please provide detailed harvest timing information for the specified crop based on the following question and context.\n\n"
+                    "Question: {question}\n\n"
+                    "Context: {context}\n\n"
+                    "Harvest Timing:"
+                ),
+                "keywords": ["harvest", "harvesting", "pick", "picking"]
+            }
+        }
 
-# Generate embeddings for contexts in batches
-@st.cache_resource
-def generate_embeddings(data):
-    keys = list(data.keys())
-    contexts = [generate_context(key, data[key]) for key in keys]
-    embedding_model = load_embedding_model()
-    context_embeddings = embedding_model.encode(contexts, convert_to_tensor=True)
-    return dict(zip(keys, context_embeddings))
+# Function to save templates to a JSON file
+def save_templates(templates, file_path='templates.json'):
+    with open(file_path, 'w') as file:
+        json.dump(templates, file, indent=4)
 
-# Function to generate context from JSON data
-def generate_context(crop_name, crop_details):
-    context_lines = [f"{crop_name.capitalize()}:"]
-    for key, value in crop_details.items():
-        if isinstance(value, list):
-            value = ', '.join(map(str, value))
-        context_lines.append(f"{key.replace('_', ' ').title()}: {value}")
-    return '\n'.join(context_lines)
+# Load existing templates or default ones
+templates = load_templates()
 
 # Function to generate text based on input question and context
-def generate_paragraph(model, tokenizer, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping):
-    input_text = f"Question: {question}\nContext: {context}\nAnswer:"
-    inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
+def generate_text(model, tokenizer, task_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping, use_template):
+    # Determine input text based on task type and template usage
+    input_text = ""
+    if use_template:
+        if task_type == "Generation":
+            input_text = templates[question_type]["template"].format(question=question, context=context)
+        elif task_type == "Paraphrasing":
+            input_text = f"paraphrase: {context} {question}"
+        elif task_type == "Summarization":
+            input_text = f"summarize: {context} {question}"
+    else:
+        if task_type == "Generation":
+            input_text = f"{context} {question}"
+        elif task_type == "Paraphrasing":
+            input_text = f"paraphrase: {context} {question}"
+        elif task_type == "Summarization":
+            input_text = f"summarize: {context} {question}"
 
+    inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
+    
+    # Measure memory before generation
+    memory_before = memory_usage()
+    
     outputs = model.generate(
-        inputs, max_length=max_length, num_beams=num_beams,
-        no_repeat_ngram_size=no_repeat_ngram_size, early_stopping=early_stopping
+        inputs, 
+        max_length=max_length, 
+        num_beams=num_beams, 
+        no_repeat_ngram_size=no_repeat_ngram_size, 
+        early_stopping=early_stopping
     )
+    
+    # Measure memory after generation
+    memory_after = memory_usage()
+    
+    memory_footprint = memory_after - memory_before
     answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    return answer
+    return format_output(answer), memory_footprint
 
-# Function to generate text word-by-word
-def generate_text_word_by_word(model, tokenizer, input_text, max_length, num_beams, no_repeat_ngram_size, early_stopping):
-    inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
-    output = []
-    past_key_values = None
+# Function to format the output into a well-written paragraph
+def format_output(output):
+    sentences = output.split('. ')
+    formatted_output = '. '.join(sentence.capitalize() for sentence in sentences if sentence)
+    if not formatted_output.endswith('.'):
+        formatted_output += '.'
+    return formatted_output
 
-    for _ in range(max_length):
-        outputs = model.generate(
-            inputs if past_key_values is None else None,
-            max_length=1,
-            num_beams=num_beams,
-            no_repeat_ngram_size=no_repeat_ngram_size,
-            early_stopping=early_stopping,
-            past_key_values=past_key_values
-        )
-        next_token = outputs[0, -1].unsqueeze(0)
-        next_word = tokenizer.decode(next_token, skip_special_tokens=True)
-        output.append(next_word)
-        inputs = next_token.unsqueeze(0)
-        if next_word == tokenizer.eos_token:
-            break
-
-    return ' '.join(output)
+# Function to explain model predictions using LIME
+def explain_model_predictions(model, tokenizer, input_text):
+    explainer = pipeline("text-classification", model=model, tokenizer=tokenizer)
+    explanation = explainer(input_text)
+    return explanation
 
 # Streamlit UI
-st.title("Optimized Crop Growing Guide Generator")
+st.title("Crop Growing Guide Generator")
 st.write("Enter your question to generate a detailed guide.")
 
-# Model selection
-model_options = [
-    "google/flan-t5-small",
-    "google/flan-t5-base",
-    "sentence-transformers/paraphrase-MiniLM-L6-v2",
-    "facebook/bart-large",
-    "gpt2"
-]
-model_name = st.selectbox("Select Model", model_options, index=1)
-model, tokenizer = load_model(model_name)
+# Add a selectbox for model selection
+model_name = st.selectbox(
+    "Select Model",
+    [
+        "google/flan-t5-small",
+        "google/flan-t5-base",
+        "distilgpt2",
+        "gpt2"
+    ],
+    index=1
+)
 
-# Add a button to clear model from memory
-if st.button('Clear Model from Memory'):
+# Add a selectbox for task selection
+if "t5" in model_name or "flan" in model_name:
+    task_type = st.selectbox(
+        "Select Task",
+        [
+            "Generation",
+            "Paraphrasing",
+            "Summarization"
+        ],
+        index=0
+    )
+else:
+    task_type = st.selectbox(
+        "Select Task",
+        [
+            "Generation",
+            "Paraphrasing",
+            "Continuation"
+        ],
+        index=0
+    )
+
+# Add a checkbox to enable or disable template usage
+use_template = st.checkbox("Use Template", value=True)
+
+# Clear previous model cache if a new model is selected
+if "previous_model_name" in st.session_state and st.session_state.previous_model_name != model_name:
+    load_model.clear()
     clear_model_from_memory()
 
-if model and tokenizer:
-    # Step 1: User question input
-    st.subheader("Step 1: User Question Input")
-    question = st.text_input("Question", value="How to grow tomatoes?", key="question")
-    step1_memory = memory_usage()
-    step1_time = measure_time(time.time())
-    st.write(f"Memory Usage: {step1_memory:.2f} MB")
-    st.write(f"Computation Time: {step1_time:.2f} seconds")
+st.session_state.previous_model_name = model_name
 
-    if question:
-        # Step 2: Load crop data from JSON file
-        st.subheader("Step 2: Load Crop Data from JSON File")
-        crop_data = load_json_database('crop_data.json')
-        step2_memory = memory_usage()
-        step2_time = measure_time(time.time())
-        st.write(f"Memory Usage: {step2_memory:.2f} MB")
-        st.write(f"Computation Time: {step2_time:.2f} seconds")
+crop_data = get_crop_data()
+embedding_model = load_embedding_model()
+model, tokenizer = load_model(model_name)
+embeddings = generate_embeddings(crop_data)
 
-        # Step 3: Generate embeddings for contexts
-        st.subheader("Step 3: Generate Embeddings for Contexts")
-        embeddings = generate_embeddings(crop_data)
-        step3_memory = memory_usage()
-        step3_time = measure_time(time.time())
-        st.write(f"Memory Usage: {step3_memory:.2f} MB")
-        st.write(f"Computation Time: {step3_time:.2f} seconds")
+question = st.text_input("Question", value="How to grow tomatoes?", key="question")
 
-        # Step 4: Compute cosine similarity between question and contexts
-        st.subheader("Step 4: Compute Cosine Similarity")
-        question_embedding = load_embedding_model().encode(question, convert_to_tensor=True)
-        cosine_scores = util.pytorch_cos_sim(question_embedding, torch.stack(list(embeddings.values())))
-        best_match_index = torch.argmax(cosine_scores).item()
-        relevant_crop = list(crop_data.keys())[best_match_index]
-        relevant_crop_details = crop_data[relevant_crop]
-        step4_memory = memory_usage()
-        step4_time = measure_time(time.time())
-        st.write(f"Memory Usage: {step4_memory:.2f} MB")
-        st.write(f"Computation Time: {step4_time:.2f} seconds")
-
-        if relevant_crop_details:
-            # Step 5: Generate context from relevant crop details
-            st.subheader("Step 5: Generate Context from Relevant Crop Details")
-            context = generate_context(relevant_crop, relevant_crop_details)
-            st.write(f"```{context}```")
-            step5_memory = memory_usage()
-            step5_time = measure_time(time.time())
-            st.write(f"Memory Usage: {step5_memory:.2f} MB")
-            st.write(f"Computation Time: {step5_time:.2f} seconds")
-
-            # Step 6: Generate guide word-by-word
-            st.subheader("Step 6: Generate Guide Word-by-Word")
-            with st.spinner("Generating guide..."):
-                guide = generate_text_word_by_word(model, tokenizer, f"Question: {question}\nContext: {context}\nAnswer:", max_length=300, num_beams=5, no_repeat_ngram_size=2, early_stopping=True)
-            st.write(guide)
-            step6_memory = memory_usage()
-            step6_time = measure_time(time.time())
-            st.write(f"Memory Usage: {step6_memory:.2f} MB")
-            st.write(f"Computation Time: {step6_time:.2f} seconds")
-
-            # Step 7: Display total memory usage and computation time
-            st.subheader("Step 7: Memory Usage and Computation Time Details")
-            total_memory_usage = memory_usage()
-            total_computation_time = step1_time + step2_time + step3_time + step4_time + step5_time + step6_time
-            st.write(f"Total Memory Usage: {total_memory_usage:.2f} MB")
-            st.write(f"Total Computation Time: {total_computation_time:.2f} seconds")
-        else:
-            st.write("No relevant crop found in the database for the given question.")
+if question:
+    relevant_context = find_relevant_context(question, embeddings)
+    context = generate_context("Crop", relevant_context)
+    question_type = determine_question_type(question, templates)
 else:
-    st.write("Model could not be loaded. Please try selecting a different model or check for errors.")
+    context = ""
+    question_type = "Planting Guide"
+
+st.subheader("Detected Question Type")
+st.write(f"**{question_type}**")
+
+st.subheader("Context")
+st.markdown(f"```{context}```")
+
+# Additional controls for model.generate parameters in the sidebar
+st.sidebar.title("Model Parameters")
+max_length = st.sidebar.slider("Max Length", 50, 500, 300)
+num_beams = st.sidebar.slider("Number of Beams", 1, 10, 5)
+no_repeat_ngram_size = st.sidebar.slider("No Repeat N-Gram Size", 1, 10, 2)
+early_stopping = st.sidebar.checkbox("Early Stopping", value=True)
+
+# Template configuration
+st.sidebar.title("Template Configuration")
+selected_question_type = st.sidebar.selectbox("Select Question Type", list(templates.keys()))
+
+template_input = st.sidebar.text_area("Template", value=templates[selected_question_type]["template"])
+keywords_input = st.sidebar.text_area("Keywords (comma separated)", value=", ".join(templates[selected_question_type]["keywords"]))
+if st.sidebar.button("Save Template"):
+    templates[selected_question_type]["template"] = template_input
+    templates[selected_question_type]["keywords"] = [keyword.strip() for keyword in keywords_input.split(',')]
+    save_templates(templates)
+    st.sidebar.success("Template saved successfully!")
+
+# Buttons to clear cache and reload models, embeddings, and templates
+st.sidebar.title("Cache Management")
+if st.sidebar.button("Clear Cache and Reload Models"):
+    load_model.clear()
+    load_embedding_model.clear()
+    generate_embeddings.clear()
+    st.experimental_rerun()
+
+if st.sidebar.button("Clear Cache and Reload Data"):
+    get_crop_data.clear()
+    generate_embeddings.clear()
+    st.experimental_rerun()
+
+if st.sidebar.button("Clear Cache and Reload Templates"):
+    load_templates.clear()
+    st.experimental_rerun()
+
+if question:
+    with st.spinner("Generating..."):
+        guide, memory_footprint = generate_text(model, tokenizer, task_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping, use_template)
+    st.subheader("Generated Guide")
+    st.write(guide)
+    
+    # Calculate total memory usage and other memory usage
+    total_memory_usage = memory_usage()
+    other_memory_usage = total_memory_usage - model_memory_usage - memory_footprint
+    
+    st.subheader("Memory Usage Details")
+    st.write(f"Model memory usage: {model_memory_usage:.2f} MB")
+    st.write(f"Memory used during generation: {memory_footprint:.2f} MB")
+    st.write(f"Other memory usage: {other_memory_usage:.2f} MB")
+    st.write(f"Total memory usage: {total_memory_usage:.2f} MB")
+
+    # Explain model predictions
+    st.subheader("Explainable AI")
+    explanation = explain_model_predictions(model, tokenizer, question)
+    st.write("Explanation:", explanation)
