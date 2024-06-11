@@ -7,18 +7,6 @@ import json
 import torch
 import gc
 
-# Load JSON database
-@st.cache_resource
-def load_json_database(file_path):
-    with open(file_path, 'r') as file:
-        data = json.load(file)
-    return data
-
-# Load crop data from JSON file
-@st.cache_resource
-def get_crop_data():
-    return load_json_database('crop_data.json')
-
 # Function to clear previous model from memory
 def clear_model_from_memory():
     if "model" in st.session_state:
@@ -43,6 +31,18 @@ def load_model(model_name):
     st.session_state.model = model
     st.session_state.tokenizer = tokenizer
     return model, tokenizer
+
+# Load JSON database
+@st.cache_resource
+def load_json_database(file_path):
+    with open(file_path, 'r') as file:
+        data = json.load(file)
+    return data
+
+# Load crop data from JSON file
+@st.cache_resource
+def get_crop_data():
+    return load_json_database('crop_data.json')
 
 # Load embedding model
 @st.cache_resource
