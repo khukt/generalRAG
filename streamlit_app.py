@@ -162,9 +162,9 @@ templates = load_templates()
 # Function to perform paraphrasing
 def paraphrase(model, tokenizer, sentence, max_length, num_beams, no_repeat_ngram_size, early_stopping):
     if isinstance(model, SentenceTransformer):
-        # Use the util.paraphrase_miniLM function for SentenceTransformer model
-        paraphrases = util.paraphrase_miniLM([sentence])
-        return paraphrases[0], 0
+        # Use the SentenceTransformer for paraphrasing
+        paraphrases = model.encode([sentence], convert_to_tensor=True)
+        return paraphrases[0].tolist(), 0
     else:
         input_text = f"paraphrase: {sentence}"
         inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
