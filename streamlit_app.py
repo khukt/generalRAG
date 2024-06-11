@@ -7,7 +7,7 @@ import json
 import torch
 import gc
 
-# Function to clear previous model from memory
+# Function to clear the model and tokenizer from memory
 def clear_model_from_memory():
     if "model" in st.session_state:
         del st.session_state.model
@@ -86,7 +86,7 @@ def find_relevant_context(question, _embeddings):
     best_match_key = list(_embeddings.keys())[best_match_index]
     return crop_data[best_match_key]
 
-# Improved function to automatically determine question type
+# Function to automatically determine the question type
 def determine_question_type(question, templates):
     question = question.lower()
     for question_type, details in templates.items():
@@ -94,7 +94,7 @@ def determine_question_type(question, templates):
             return question_type
     return "Planting Guide"  # Default to planting guide if no keywords match
 
-# Function to load templates
+# Function to load templates from a JSON file
 @st.cache_resource
 def load_templates(file_path='templates.json'):
     if os.path.exists(file_path):
@@ -158,7 +158,7 @@ def load_templates(file_path='templates.json'):
             }
         }
 
-# Function to save templates
+# Function to save templates to a JSON file
 def save_templates(templates, file_path='templates.json'):
     with open(file_path, 'w') as file:
         json.dump(templates, file, indent=4)
@@ -168,6 +168,7 @@ templates = load_templates()
 
 # Function to generate text based on input question and context
 def generate_text(model, tokenizer, task_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping, use_template):
+    # Determine input text based on task type and template usage
     input_text = ""
     if use_template:
         if task_type == "Generation":
