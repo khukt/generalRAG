@@ -6,15 +6,13 @@ from sentence_transformers import SentenceTransformer, util
 import json
 import os
 import psutil
-
-# Responsible AI and Logging
 import logging
-from datetime import datetime
 
 # Setup logger
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+# Logging functions
 def log_decision(message):
     logger.info(message)
 
@@ -60,14 +58,14 @@ def determine_question_type(question, templates):
             return question_type
     return "Planting Guide"  # Default to planting guide if no keywords match
 
-@st.cache_resource
+@st.cache_data
 def load_model_and_tokenizer(model_name):
     model = T5ForConditionalGeneration.from_pretrained(model_name)
     tokenizer = T5Tokenizer.from_pretrained(model_name, legacy=False)
     log_model_usage(model_name)
     return model, tokenizer
 
-@st.cache_resource
+@st.cache_data
 def load_templates(template_file='templates.json'):
     if os.path.exists(template_file):
         with open(template_file, 'r') as file:
@@ -108,10 +106,10 @@ def load_embedding_model():
     return model
 
 @st.cache_data
-def generate_embeddings(embedding_model, data):
+def generate_embeddings(_embedding_model, data):
     keys = list(data.keys())
     contexts = [generate_context(key, data[key]) for key in keys]
-    context_embeddings = embedding_model.encode(contexts, convert_to_tensor=True)
+    context_embeddings = _embedding_model.encode(contexts, convert_to_tensor=True)
     embeddings = dict(zip(keys, context_embeddings))
     log_decision("Generated embeddings for crop data")
     return embeddings
