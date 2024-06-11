@@ -164,8 +164,8 @@ templates = load_templates()
 # Function to perform paraphrasing
 def paraphrase(model, tokenizer, sentence, max_length, num_beams, no_repeat_ngram_size, early_stopping):
     if isinstance(model, SentenceTransformer):
-        # For SentenceTransformer model, use the paraphrase task
-        paraphrases = model.encode([sentence])
+        # Use the util.paraphrase_miniLM function for SentenceTransformer model
+        paraphrases = util.paraphrase_miniLM([sentence])
         return paraphrases[0], 0
     else:
         input_text = f"paraphrase: {sentence}"
@@ -244,10 +244,7 @@ if sentence:
     with st.spinner("Generating paraphrase..."):
         paraphrased_sentence, memory_footprint = paraphrase(model, tokenizer, sentence, max_length, num_beams, no_repeat_ngram_size, early_stopping)
     st.subheader("Generated Paraphrase")
-    if isinstance(paraphrased_sentence, torch.Tensor):
-        st.write(paraphrased_sentence.tolist())
-    else:
-        st.write(paraphrased_sentence)
+    st.write(paraphrased_sentence)
     
     # Calculate total memory usage and other memory usage
     total_memory_usage = memory_usage()
