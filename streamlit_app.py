@@ -51,7 +51,7 @@ def load_embedding_model():
 
 # General function to generate context from details
 def generate_context(key, details):
-    context_lines = [f"{key.capitalize()}:"]
+    context_lines = []
     for k, v in details.items():
         if isinstance(v, list):
             v = ', '.join(map(str, v))
@@ -104,54 +104,54 @@ def load_templates(file_path='templates.json'):
         return {
             "Planting Guide": {
                 "template": (
-                    "Please provide a detailed guide on how to plant and grow the specified crop based on the following question and context.\n\n"
-                    "Question: {question}\n\n"
-                    "Context: {context}\n\n"
+                    "Provide a guide on planting and growing the specified crop.\n\n"
+                    "Question: {question}\n"
+                    "Context: {context}\n"
                     "Guide:"
                 ),
                 "keywords": ["how", "grow", "plant", "cultivate"]
             },
             "Common Issues": {
                 "template": (
-                    "Please provide a detailed explanation of common issues and their solutions for growing the specified crop based on the following question and context.\n\n"
-                    "Question: {question}\n\n"
-                    "Context: {context}\n\n"
+                    "Explain common issues and their solutions for growing the specified crop.\n\n"
+                    "Question: {question}\n"
+                    "Context: {context}\n"
                     "Issues and Solutions:"
                 ),
                 "keywords": ["issues", "problems", "diseases", "pests"]
             },
             "Best Practices": {
                 "template": (
-                    "Please provide a detailed list of best practices for growing the specified crop based on the following question and context.\n\n"
-                    "Question: {question}\n\n"
-                    "Context: {context}\n\n"
+                    "List the best practices for growing the specified crop.\n\n"
+                    "Question: {question}\n"
+                    "Context: {context}\n"
                     "Best Practices:"
                 ),
                 "keywords": ["best practices", "tips", "guidelines", "recommendations"]
             },
             "Watering Schedule": {
                 "template": (
-                    "Please provide a detailed watering schedule for the specified crop based on the following question and context.\n\n"
-                    "Question: {question}\n\n"
-                    "Context: {context}\n\n"
+                    "Provide a watering schedule for the specified crop.\n\n"
+                    "Question: {question}\n"
+                    "Context: {context}\n"
                     "Watering Schedule:"
                 ),
                 "keywords": ["watering", "irrigation", "water schedule"]
             },
             "Fertilization Tips": {
                 "template": (
-                    "Please provide detailed fertilization tips for the specified crop based on the following question and context.\n\n"
-                    "Question: {question}\n\n"
-                    "Context: {context}\n\n"
+                    "Provide fertilization tips for the specified crop.\n\n"
+                    "Question: {question}\n"
+                    "Context: {context}\n"
                     "Fertilization Tips:"
                 ),
                 "keywords": ["fertilization", "fertilizer", "feeding", "nutrition"]
             },
             "Harvest Timing": {
                 "template": (
-                    "Please provide detailed harvest timing information for the specified crop based on the following question and context.\n\n"
-                    "Question: {question}\n\n"
-                    "Context: {context}\n\n"
+                    "Provide harvest timing information for the specified crop.\n\n"
+                    "Question: {question}\n"
+                    "Context: {context}\n"
                     "Harvest Timing:"
                 ),
                 "keywords": ["harvest", "harvesting", "pick", "picking"]
@@ -171,19 +171,9 @@ def generate_text(model, tokenizer, task_type, question, context, max_length, nu
     # Determine input text based on task type and template usage
     input_text = ""
     if use_template:
-        if task_type == "Generation":
-            input_text = templates[question_type]["template"].format(question=question, context=context)
-        elif task_type == "Paraphrasing":
-            input_text = f"paraphrase: {context} {question}"
-        elif task_type == "Summarization":
-            input_text = f"summarize: {context} {question}"
+        input_text = templates[question_type]["template"].format(question=question, context=context)
     else:
-        if task_type == "Generation":
-            input_text = f"{context} {question}"
-        elif task_type == "Paraphrasing":
-            input_text = f"paraphrase: {context} {question}"
-        elif task_type == "Summarization":
-            input_text = f"summarize: {context} {question}"
+        input_text = f"{context} {question}"
 
     inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
     
@@ -253,34 +243,6 @@ else:
 
 use_template = st.sidebar.checkbox("Use Template", value=True)
 
-# Clear previous model cache if a new model is selected
-if "previous_model_name" in st.session_state and st.session_state.previous_model_name != model_name:
-    load_model.clear()
-    clear_model_from_memory()
-
-st.session_state.previous_model_name = model_name
-
-crop_data = get_crop_data()
-embedding_model = load_embedding_model()
-model, tokenizer = load_model(model_name)
-embeddings = generate_embeddings(crop_data)
-
-question = st.text_input("Question", value="How to grow tomatoes?", key="question")
-
-if question:
-    relevant_context = find_relevant_context(question, embeddings)
-    context = generate_context("Crop", relevant_context)
-    question_type = determine_question_type(question, templates)
-else:
-    context = ""
-    question_type = "Planting Guide"
-
-st.subheader("Detected Question Type")
-st.write(f"**{question_type}**")
-
-st.subheader("Context")
-st.markdown(f"```{context}```")
-
 # Additional controls for model.generate parameters in the sidebar
 st.sidebar.title("Model Parameters")
 max_length = st.sidebar.slider("Max Length", 50, 500, 300)
@@ -316,6 +278,28 @@ if st.sidebar.button("Clear Cache and Reload Data"):
 if st.sidebar.button("Clear Cache and Reload Templates"):
     load_templates.clear()
     st.experimental_rerun()
+
+# Main input and processing section
+crop_data = get_crop_data()
+embedding_model = load_embedding_model()
+model, tokenizer = load_model(model_name)
+embeddings = generate_embeddings(crop_data)
+
+question = st.text_input("Question", value="How to grow tomatoes?", key="question")
+
+if question:
+    relevant_context = find_relevant_context(question, embeddings)
+    context = generate_context("Crop", relevant_context)
+    question_type = determine_question_type(question, templates)
+else:
+    context = ""
+    question_type = "Planting Guide"
+
+st.subheader("Detected Question Type")
+st.write(f"**{question_type}**")
+
+st.subheader("Context")
+st.markdown(f"```{context}```")
 
 if question:
     with st.spinner("Generating..."):
