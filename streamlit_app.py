@@ -67,7 +67,21 @@ def memory_usage():
     mem_info = process.memory_info()
     return mem_info.rss / (1024 ** 2)  # Convert bytes to MB
 
-# Function to generate context from JSON data
+# Function to build in-memory graph
+def build_graph(data):
+    graph = {}
+    for crop, details in data.items():
+        graph[crop] = details
+    return graph
+
+# Function to query the graph
+def query_graph(graph, question):
+    for crop, details in graph.items():
+        if crop.lower() in question.lower():
+            return details
+    return None
+
+# Function to generate context from graph query result
 def generate_context(crop_name, crop_details):
     context_lines = [f"{crop_name.capitalize()}:"]
     for key, value in crop_details.items():
@@ -95,19 +109,19 @@ st.write("Enter your question to generate a detailed guide using GraphRAG.")
 model_name = st.selectbox("Select Model", ["google/flan-t5-small", "google/flan-t5-base"], index=1)
 model, tokenizer = load_model(model_name)
 
+# Build in-memory graph from JSON data
+graph = build_graph(crop_data)
+
 # User question input
 question = st.text_input("Question", value="How to grow tomatoes?", key="question")
 
 if question:
-    # Identify relevant crop based on question (simple heuristic)
-    relevant_crop = None
-    for crop in crop_data.keys():
-        if crop.lower() in question.lower():
-            relevant_crop = crop
-            break
+    # Query the graph for relevant context
+    relevant_crop_details = query_graph(graph, question)
 
-    if relevant_crop:
-        context = generate_context(relevant_crop, crop_data[relevant_crop])
+    if relevant_crop_details:
+        crop_name = question.split()[-1].capitalize()  # Simple heuristic to get the crop name
+        context = generate_context(crop_name, relevant_crop_details)
         st.subheader("Generated Context")
         st.write(f"```{context}```")
 
