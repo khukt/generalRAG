@@ -7,39 +7,6 @@ import gc
 import psutil
 import os
 
-# Sample JSON data
-crop_data_json = '''
-{
-  "Tomato": {
-    "name": "Tomato",
-    "planting_season": "Spring",
-    "harvest_time": "Summer",
-    "soil_type": "Well-drained, fertile soil",
-    "soil_preparation": "Till the soil and add compost before planting.",
-    "watering_frequency": "Regular watering, keep soil moist but not waterlogged.",
-    "fertilization_schedule": "Fertilize every 2 weeks with a balanced fertilizer.",
-    "pests_diseases": ["Aphids", "Blight", "Tomato Hornworm"],
-    "pest_management": "Use insecticidal soap for aphids and handpick tomato hornworms.",
-    "harvesting_techniques": "Harvest when tomatoes are firm and fully colored."
-  },
-  "Corn": {
-    "name": "Corn",
-    "planting_season": "Late Spring",
-    "harvest_time": "Late Summer to Early Fall",
-    "soil_type": "Well-drained, loamy soil",
-    "soil_preparation": "Mix in aged manure or compost before planting.",
-    "watering_frequency": "Moderate watering, keep soil moist especially during tasseling and ear development.",
-    "fertilization_schedule": "Side-dress with nitrogen fertilizer when plants are 8 inches tall and again when tassels appear.",
-    "pests_diseases": ["Corn Earworm", "Rootworm", "Corn Smut"],
-    "pest_management": "Use Bacillus thuringiensis (Bt) for earworms and rotate crops to manage rootworms.",
-    "harvesting_techniques": "Harvest when ears are full and kernels are milky when punctured."
-  }
-}
-'''
-
-# Parse JSON data
-crop_data = json.loads(crop_data_json)
-
 # Function to clear previous model from memory
 def clear_model_from_memory():
     if "model" in st.session_state:
@@ -49,7 +16,6 @@ def clear_model_from_memory():
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
     gc.collect()
-    st.rerun()  # Rerun the Streamlit app to ensure the model is fully cleared
 
 # Load the model and tokenizer with error handling
 @st.cache_resource
@@ -71,6 +37,13 @@ def load_model(model_name):
     except Exception as e:
         st.error(f"Failed to load model {model_name}: {e}")
         return None, None
+
+# Function to load JSON database
+@st.cache_resource
+def load_json_database(file_path):
+    with open(file_path, 'r') as file:
+        data = json.load(file)
+    return data
 
 # Function to measure memory usage
 def memory_usage():
@@ -137,6 +110,9 @@ if model and tokenizer:
     question = st.text_input("Question", value="How to grow tomatoes?", key="question")
 
     if question:
+        # Load crop data from JSON file
+        crop_data = load_json_database('crop_data.json')
+
         # Retrieve relevant context using embeddings
         embeddings = generate_embeddings(crop_data)
         question_embedding = load_embedding_model().encode(question, convert_to_tensor=True)
