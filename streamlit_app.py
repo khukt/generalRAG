@@ -221,8 +221,11 @@ def normalize_attention_weights(attentions):
     normalized_attentions = avg_attentions[0].cpu().detach().numpy()
     return normalized_attentions / normalized_attentions.max()
 
-def highlight_text(tokenizer, input_text, input_ids, attention_weights):
+def highlight_text(tokenizer, input_ids, attention_weights):
     tokens = tokenizer.convert_ids_to_tokens(input_ids[0])
+    # Flatten attention weights if necessary and ensure correct length
+    if attention_weights.ndim > 1:
+        attention_weights = attention_weights.flatten()
     assert len(tokens) == len(attention_weights), "Mismatch between tokens and attention weights length"
     highlighted_text = ""
     for token, weight in zip(tokens, attention_weights):
