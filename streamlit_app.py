@@ -154,7 +154,7 @@ def generate_text(model, tokenizer, task_type, question, context, max_length, nu
         elif task_type == "Summarization":
             input_text = f"summarize: {input_text}"
         elif task_type == "Translation":
-            input_text = f"translate English to German: {input_text}"
+            input_text = f"translate English to Burmese: {input_text}"
         elif task_type == "Question Answering":
             input_text = f"question: {question} context: {context}"
         elif task_type == "NER":
