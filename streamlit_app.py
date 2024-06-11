@@ -6,6 +6,7 @@ import json
 import psutil
 import logging
 import time
+import os
 
 # Setup logger
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
