@@ -224,6 +224,8 @@ def normalize_attention_weights(attentions):
 
 def highlight_text(tokenizer, input_text, attention_weights):
     tokens = tokenizer.convert_ids_to_tokens(tokenizer.encode(input_text, add_special_tokens=False))
+    st.write(len(tokens))
+    st.write(len(attention_weights))
     assert len(tokens) == len(attention_weights), "Mismatch between tokens and attention weights length"
     highlighted_text = ""
     for token, weight in zip(tokens, attention_weights):
