@@ -222,7 +222,8 @@ model_name = st.selectbox(
     "Select Model",
     [
         "google/flan-t5-small",
-        "google/flan-t5-base"
+        "google/flan-t5-base",
+        "gpt2"
     ],
     index=1
 )
