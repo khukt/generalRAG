@@ -82,7 +82,21 @@ def generate_embeddings(data):
     context_embeddings = embedding_model.encode(contexts, convert_to_tensor=True)
     return dict(zip(keys, context_embeddings))
 
-# Function to generate context from JSON data
+# Function to build in-memory graph
+def build_graph(data):
+    graph = {}
+    for crop, details in data.items():
+        graph[crop] = details
+    return graph
+
+# Function to query the graph
+def query_graph(graph, question):
+    for crop, details in graph.items():
+        if crop.lower() in question.lower():
+            return details
+    return None
+
+# Function to generate context from graph query result
 def generate_context(crop_name, crop_details):
     context_lines = [f"{crop_name.capitalize()}:"]
     for key, value in crop_details.items():
@@ -103,12 +117,15 @@ def generate_paragraph(model, tokenizer, question, context, max_length, num_beam
     return answer
 
 # Streamlit UI
-st.title("Optimized Crop Growing Guide Generator")
-st.write("Enter your question to generate a detailed guide.")
+st.title("GraphRAG Enhanced Crop Growing Guide Generator")
+st.write("Enter your question to generate a detailed guide using GraphRAG.")
 
 # Model selection
 model_name = st.selectbox("Select Model", ["google/flan-t5-small", "google/flan-t5-base"], index=1)
 model, tokenizer = load_model(model_name)
+
+# Build in-memory graph from JSON data
+graph = build_graph(crop_data)
 
 # User question input
 question = st.text_input("Question", value="How to grow tomatoes?", key="question")
