@@ -17,7 +17,10 @@ def log_performance(func):
         elapsed_time = time.time() - start_time
         final_memory = memory_usage()
         memory_used = final_memory - initial_memory
-        st.write(f"Execution time for {func.__name__}: {elapsed_time:.4f} seconds, Memory used: {memory_used:.2f} MB")
+        st.markdown(
+            f"<div style='color:gray; font-size: small;'>Execution time for {func.__name__}: {elapsed_time:.4f} seconds, Memory used: {memory_used:.2f} MB</div>",
+            unsafe_allow_html=True
+        )
         return result
     return wrapper
 
@@ -347,8 +350,11 @@ if question:
     with st.spinner("Generating..."):
         guide, memory_footprint = generate_text(model, tokenizer, task_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping, use_template, template_manager.get_templates(), question_type)
     st.subheader("Generated Guide")
-    st.write(guide)
-    
+    st.markdown(
+        f"<div style='border: 1px solid #ccc; padding: 10px; border-radius: 5px;'>{guide}</div>",
+        unsafe_allow_html=True
+    )
+
     # Calculate total memory usage and other memory usage
     total_memory_usage = memory_usage()
     other_memory_usage = total_memory_usage - memory_footprint
