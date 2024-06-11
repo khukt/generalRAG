@@ -71,7 +71,7 @@ class ModelManager:
 
     @log_performance
     def load_model(self, model_name):
-        self.clear_model_from_memory()
+        
         self.model = T5ForConditionalGeneration.from_pretrained(model_name)
         self.tokenizer = T5Tokenizer.from_pretrained(model_name, legacy=False)
         st.session_state.model = self.model
