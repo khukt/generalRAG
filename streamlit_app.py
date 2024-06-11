@@ -71,20 +71,11 @@ class ModelManager:
 
     @log_performance
     def load_model(self, model_name):
-        
         self.model = T5ForConditionalGeneration.from_pretrained(model_name)
         self.tokenizer = T5Tokenizer.from_pretrained(model_name, legacy=False)
         st.session_state.model = self.model
         st.session_state.tokenizer = self.tokenizer
         log_model_usage(model_name)
-
-    @log_performance
-    def clear_model_from_memory(self):
-        if 'model' in st.session_state:
-            del st.session_state.model
-            del st.session_state.tokenizer
-            torch.cuda.empty_cache()
-            log_decision("Cleared model and tokenizer from memory")
 
     def get_model_and_tokenizer(self):
         return self.model, self.tokenizer
