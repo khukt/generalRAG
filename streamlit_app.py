@@ -63,27 +63,28 @@ def determine_question_type(question, templates):
 # Model Manager
 class ModelManager:
     def __init__(self):
-        self.model = None
-        self.tokenizer = None
-        self.load_model("google/flan-t5-base")
+        if 'model' not in st.session_state:
+            self.load_model("google/flan-t5-base")
+        else:
+            self.model = st.session_state.model
+            self.tokenizer = st.session_state.tokenizer
 
     @log_performance
     def load_model(self, model_name):
         self.clear_model_from_memory()
         self.model = T5ForConditionalGeneration.from_pretrained(model_name)
         self.tokenizer = T5Tokenizer.from_pretrained(model_name, legacy=False)
+        st.session_state.model = self.model
+        st.session_state.tokenizer = self.tokenizer
         log_model_usage(model_name)
 
     @log_performance
     def clear_model_from_memory(self):
-        if self.model is not None:
-            del self.model
-            self.model = None
-        if self.tokenizer is not None:
-            del self.tokenizer
-            self.tokenizer = None
-        torch.cuda.empty_cache()
-        log_decision("Cleared model and tokenizer from memory")
+        if 'model' in st.session_state:
+            del st.session_state.model
+            del st.session_state.tokenizer
+            torch.cuda.empty_cache()
+            log_decision("Cleared model and tokenizer from memory")
 
     def get_model_and_tokenizer(self):
         return self.model, self.tokenizer
@@ -154,8 +155,13 @@ class CropDataManager:
 # Embedding Manager
 class EmbeddingManager:
     def __init__(self):
-        self.embedding_model = self.load_embedding_model()
-        self.embeddings = None
+        if 'embeddings' not in st.session_state:
+            self.embedding_model = self.load_embedding_model()
+            self.embeddings = self.generate_embeddings(crop_data_manager.get_crop_data())
+            st.session_state.embeddings = self.embeddings
+        else:
+            self.embedding_model = st.session_state.embedding_model
+            self.embeddings = st.session_state.embeddings
 
     @log_performance
     @st.cache_resource
