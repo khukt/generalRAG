@@ -14,7 +14,7 @@ def log_time(func):
         start_time = time.time()
         result = func(*args, **kwargs)
         elapsed_time = time.time() - start_time
-        st.write(f"Execution time for {func.__name__}: {elapsed_time:.4f} seconds")
+        st.session_state.debug_info.append(f"Execution time for {func.__name__}: {elapsed_time:.4f} seconds")
         return result
     return wrapper
 
@@ -190,7 +190,7 @@ def generate_context(key, details):
 
 @log_time
 def find_relevant_context(question, embeddings, data):
-    question_embedding = embedding_model.encode(question, convert_to_tensor=True)
+    question_embedding = embedding_manager.embedding_model.encode(question, convert_to_tensor=True)
     cosine_scores = util.pytorch_cos_sim(question_embedding, torch.stack(list(embeddings.values())))
     best_match_index = torch.argmax(cosine_scores).item()
     best_match_key = list(embeddings.keys())[best_match_index]
@@ -242,6 +242,10 @@ def format_output(output):
 # Streamlit UI
 st.title("Crop Growing Guide Generator")
 st.write("Enter your question to generate a detailed guide.")
+
+# Initialize session state for debug information
+if 'debug_info' not in st.session_state:
+    st.session_state.debug_info = []
 
 # Initialize managers
 model_manager = ModelManager()
@@ -364,3 +368,8 @@ if question:
     st.write(f"Text (Code): {mem_info.text / (1024 ** 2):.2f} MB")
     st.write(f"Data + Stack: {mem_info.data / (1024 ** 2):.2f} MB")
     st.write(f"Library (unused): {mem_info.lib / (1024 ** 2):.2f} MB")
+
+# Display debug information
+st.sidebar.title("Debug Information")
+for info in st.session_state.debug_info:
+    st.sidebar.write(info)
