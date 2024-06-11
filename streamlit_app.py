@@ -328,16 +328,43 @@ if question:
     other_memory_usage = total_memory_usage - memory_footprint
     
     st.subheader("Memory Usage Details")
-    st.write(f"Memory used during generation: {memory_footprint:.2f} MB")
-    st.write(f"Other memory usage: {other_memory_usage:.2f} MB")
-    st.write(f"Total memory usage: {total_memory_usage:.2f} MB")
+    st.markdown(
+        f"<div style='color:gray; font-size: small;'>Memory used during generation: {memory_footprint:.2f} MB</div>",
+        unsafe_allow_html=True
+    )
+    st.markdown(
+        f"<div style='color:gray; font-size: small;'>Other memory usage: {other_memory_usage:.2f} MB</div>",
+        unsafe_allow_html=True
+    )
+    st.markdown(
+        f"<div style='color:gray; font-size: small;'>Total memory usage: {total_memory_usage:.2f} MB</div>",
+        unsafe_allow_html=True
+    )
 
     # Detailed memory breakdown
     process = psutil.Process(os.getpid())
     mem_info = process.memory_info()
-    st.write(f"Resident Set Size (RSS): {mem_info.rss / (1024 ** 2):.2f} MB")
-    st.write(f"Virtual Memory Size (VMS): {mem_info.vms / (1024 ** 2):.2f} MB")
-    st.write(f"Shared Memory: {mem_info.shared / (1024 ** 2):.2f} MB")
-    st.write(f"Text (Code): {mem_info.text / (1024 ** 2):.2f} MB")
-    st.write(f"Data + Stack: {mem_info.data / (1024 ** 2):.2f} MB")
-    st.write(f"Library (unused): {mem_info.lib / (1024 ** 2):.2f} MB")
+    st.markdown(
+        f"<div style='color:gray; font-size: small;'>Resident Set Size (RSS): {mem_info.rss / (1024 ** 2):.2f} MB</div>",
+        unsafe_allow_html=True
+    )
+    st.markdown(
+        f"<div style='color:gray; font-size: small;'>Virtual Memory Size (VMS): {mem_info.vms / (1024 ** 2):.2f} MB</div>",
+        unsafe_allow_html=True
+    )
+    st.markdown(
+        f"<div style='color:gray; font-size: small;'>Shared Memory: {mem_info.shared / (1024 ** 2):.2f} MB</div>",
+        unsafe_allow_html=True
+    )
+    st.markdown(
+        f"<div style='color:gray; font-size: small;'>Text (Code): {mem_info.text / (1024 ** 2):.2f} MB</div>",
+        unsafe_allow_html=True
+    )
+    st.markdown(
+        f"<div style='color:gray; font-size: small;'>Data + Stack: {mem_info.data / (1024 ** 2):.2f} MB</div>",
+        unsafe_allow_html=True
+    )
+    st.markdown(
+        f"<div style='color:gray; font-size: small;'>Library (unused): {mem_info.lib / (1024 ** 2):.2f} MB</div>",
+        unsafe_allow_html=True
+    )
