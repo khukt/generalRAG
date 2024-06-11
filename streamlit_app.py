@@ -243,7 +243,7 @@ def generate_text(model, tokenizer, task_type, question, context, max_length, nu
 def format_output(output):
     sentences = output.split('. ')
     formatted_output = '. '.join(sentence.capitalize() for sentence in sentences if sentence)
-    if not formatted_output ends with '.':
+    if not formatted_output.endswith('.'):
         formatted_output += '.'
     return formatted_output
 
