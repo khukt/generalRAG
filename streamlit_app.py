@@ -162,24 +162,35 @@ def generate_text(model, tokenizer, task_type, question, context, max_length, nu
         inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
         
         memory_before = memory_usage()
-        
+
+        # Forward pass to get attentions
         outputs = model.generate(
-            inputs, 
-            max_length=max_length, 
-            num_beams=num_beams, 
-            no_repeat_ngram_size=no_repeat_ngram_size, 
+            inputs,
+            max_length=max_length,
+            num_beams=num_beams,
+            no_repeat_ngram_size=no_repeat_ngram_size,
             early_stopping=early_stopping,
             output_attentions=True,
             return_dict_in_generate=True
         )
-        
+
+        # Separate generation and attention fetching to ensure we capture attentions
+        encoder_outputs = model.get_encoder()(inputs)
+        decoder_input_ids = model._shift_right(inputs)
+        decoder_outputs = model.decoder(
+            input_ids=decoder_input_ids,
+            encoder_hidden_states=encoder_outputs.last_hidden_state,
+            encoder_attention_mask=inputs.ne(tokenizer.pad_token_id),
+            output_attentions=True,
+            return_dict=True
+        )
+
+        attentions = decoder_outputs.attentions
+
         memory_after = memory_usage()
         
         memory_footprint = memory_after - memory_before
         answer = tokenizer.decode(outputs.sequences[0], skip_special_tokens=True)
-        
-        # Extract attention weights from the model outputs
-        attentions = outputs.attentions
         
         log_generation_details({
             "task_type": task_type,
