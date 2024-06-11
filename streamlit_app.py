@@ -137,12 +137,12 @@ class CropDataManager:
 
     @log_performance
     @st.cache_resource
-    def load_crop_data(self):
-        return self.load_json_database('crop_data.json')
+    def load_crop_data(_self):
+        return _self.load_json_database('crop_data.json')
 
     @log_performance
     @st.cache_resource
-    def load_json_database(self, file_path):
+    def load_json_database(_self, file_path):
         with open(file_path, 'r') as file:
             data = json.load(file)
         log_decision(f"Loaded crop data from {file_path}")
@@ -159,20 +159,20 @@ class EmbeddingManager:
 
     @log_performance
     @st.cache_resource
-    def load_embedding_model(self):
+    def load_embedding_model(_self):
         model = SentenceTransformer('all-MiniLM-L6-v2')
         log_decision("Loaded embedding model 'all-MiniLM-L6-v2'")
         return model
 
     @log_performance
     @st.cache_resource
-    def generate_embeddings(self, data):
+    def generate_embeddings(_self, data):
         keys = list(data.keys())
-        contexts = [self.generate_context(key, data[key]) for key in keys]
-        context_embeddings = self.embedding_model.encode(contexts, convert_to_tensor=True)
-        self.embeddings = dict(zip(keys, context_embeddings))
+        contexts = [_self.generate_context(key, data[key]) for key in keys]
+        context_embeddings = _self.embedding_model.encode(contexts, convert_to_tensor=True)
+        _self.embeddings = dict(zip(keys, context_embeddings))
         log_decision("Generated embeddings for crop data")
-        return self.embeddings
+        return _self.embeddings
 
     def generate_context(self, key, details):
         context_lines = []
@@ -320,7 +320,7 @@ if question:
     
     # Display cosine similarity results
     st.write("Cosine similarity results:")
-    for i, (key, score) in enumerate(zip(crop_data.keys(), cosine_scores[0])):
+    for key, score in zip(embeddings.keys(), cosine_scores[0]):
         st.write(f"{key}: {score.item():.2f}")
     
     question_type = determine_question_type(question, template_manager.get_templates())
