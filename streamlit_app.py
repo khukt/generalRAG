@@ -25,6 +25,7 @@ def clear_model_from_memory():
         del st.session_state.model
     if "tokenizer" in st.session_state:
         del st.session_state.tokenizer
+    torch.cuda.empty_cache()
     gc.collect()
 
 # Cache the model and tokenizer to optimize memory usage
@@ -56,6 +57,7 @@ def generate_context(key, details):
             v = ', '.join(map(str, v))
         elif isinstance(v, dict):
             v = generate_context(k, v)  # Recursively handle nested dictionaries
+        context_lines.append(f"{k.replace('_', ' ').title()
         context_lines.append(f"{k.replace('_', ' ').title()}: {v}")
     return '\n'.join(context_lines)
 
@@ -159,7 +161,7 @@ def load_templates(file_path='templates.json'):
 
 # Function to save templates
 def save_templates(templates, file_path='templates.json'):
-    with open(file_path, 'w') as file:
+    with open(file_path, 'w') as file):
         json.dump(templates, file, indent=4)
 
 # Load existing templates or default ones
@@ -206,21 +208,30 @@ model_name = st.selectbox(
     [
         "google/flan-t5-small",
         "google/flan-t5-base",
+        "google/flan-t5-large",
+        "google/flan-t5-xl",
+        "google/flan-t5-xxl",
         "t5-small",
         "t5-base",
+        "t5-large",
+        "t5-3b",
+        "t5-11b",
         "t5-small-lm-adapt",
         "t5-base-lm-adapt",
         "t5-large-lm-adapt",
         "google/mt5-small",
         "google/mt5-base",
+        "google/mt5-large",
+        "google/mt5-xl",
+        "google/mt5-xxl"
     ],
     index=1
 )
 
 # Clear previous model cache if a new model is selected
 if "previous_model_name" in st.session_state and st.session_state.previous_model_name != model_name:
-    clear_model_from_memory()
     load_model.clear()
+    clear_model_from_memory()
 
 st.session_state.previous_model_name = model_name
 
@@ -234,3 +245,65 @@ question = st.text_input("Question", value="How to grow tomatoes?", key="questio
 if question:
     relevant_context = find_relevant_context(question, embeddings)
     context = generate_context("Crop", relevant_context)
+    question_type = determine_question_type(question, templates)
+else:
+    context = ""
+    question_type = "Planting Guide"
+
+st.subheader("Detected Question Type")
+st.write(f"**{question_type}**")
+
+st.subheader("Context")
+st.markdown(f"```{context}```")
+
+# Additional controls for model.generate parameters in the sidebar
+st.sidebar.title("Model Parameters")
+max_length = st.sidebar.slider("Max Length", 50, 500, 300)
+num_beams = st.sidebar.slider("Number of Beams", 1, 10, 5)
+no_repeat_ngram_size = st.sidebar.slider("No Repeat N-Gram Size", 1, 10, 2)
+early_stopping = st.sidebar.checkbox("Early Stopping", value=True)
+
+# Template configuration
+st.sidebar.title("Template Configuration")
+selected_question_type = st.sidebar.selectbox("Select Question Type", list(templates.keys()))
+
+template_input = st.sidebar.text_area("Template", value=templates[selected_question_type]["template"])
+keywords_input = st.sidebar.text_area("Keywords (comma separated)", value=", ".join(templates[selected_question_type]["keywords"]))
+if st.sidebar.button("Save Template"):
+    templates[selected_question_type]["template"] = template_input
+    templates[selected_question_type]["keywords"] = [keyword.strip() for keyword in keywords_input.split(',')]
+    save_templates(templates)
+    st.sidebar.success("Template saved successfully!")
+
+# Buttons to clear cache and reload models, embeddings, and templates
+st.sidebar.title("Cache Management")
+if st.sidebar.button("Clear Cache and Reload Models"):
+    load_model.clear()
+    load_embedding_model.clear()
+    generate_embeddings.clear()
+    st.experimental_rerun()
+
+if st.sidebar.button("Clear Cache and Reload Data"):
+    get_crop_data.clear()
+    generate_embeddings.clear()
+    st.experimental_rerun()
+
+if st.sidebar.button("Clear Cache and Reload Templates"):
+    load_templates.clear()
+    st.experimental_rerun()
+
+if question:
+    with st.spinner("Generating..."):
+        guide, memory_footprint = generate_paragraph(model, tokenizer, question_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping)
+    st.subheader("Generated Guide")
+    st.write(guide)
+    
+    # Calculate total memory usage and other memory usage
+    total_memory_usage = memory_usage()
+    other_memory_usage = total_memory_usage - model_memory_usage - memory_footprint
+    
+    st.subheader("Memory Usage Details")
+    st.write(f"Model memory usage: {model_memory_usage:.2f} MB")
+    st.write(f"Memory used during generation: {memory_footprint:.2f} MB")
+    st.write(f"Other memory usage: {other_memory_usage:.2f} MB")
+    st.write(f"Total memory usage: {total_memory_usage:.2f} MB")
