@@ -137,12 +137,12 @@ class CropDataManager:
 
     @log_performance
     @st.cache_resource
-    def load_crop_data(self):
-        return self.load_json_database('crop_data.json')
+    def load_crop_data(_self):
+        return _self.load_json_database('crop_data.json')
 
     @log_performance
     @st.cache_resource
-    def load_json_database(self, file_path):
+    def load_json_database(_self, file_path):
         with open(file_path, 'r') as file:
             data = json.load(file)
         log_decision(f"Loaded crop data from {file_path}")
