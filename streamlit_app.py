@@ -8,13 +8,16 @@ import torch
 import gc
 import time
 
-# Helper function to measure and log execution time of a function
-def log_time(func):
+# Helper function to measure and log execution time and memory usage of a function
+def log_performance(func):
     def wrapper(*args, **kwargs):
         start_time = time.time()
+        initial_memory = memory_usage()
         result = func(*args, **kwargs)
         elapsed_time = time.time() - start_time
-        st.session_state.debug_info.append(f"Execution time for {func.__name__}: {elapsed_time:.4f} seconds")
+        final_memory = memory_usage()
+        memory_used = final_memory - initial_memory
+        st.write(f"Execution time for {func.__name__}: {elapsed_time:.4f} seconds, Memory used: {memory_used:.2f} MB")
         return result
     return wrapper
 
@@ -29,7 +32,7 @@ class ModelManager:
         self.model = None
         self.tokenizer = None
 
-    @log_time
+    @log_performance
     def load_model(self, model_name):
         self.clear_model_from_memory()
         if "t5" in model_name or "flan" in model_name:
@@ -43,7 +46,7 @@ class ModelManager:
         st.session_state.model = self.model
         st.session_state.tokenizer = self.tokenizer
 
-    @log_time
+    @log_performance
     def clear_model_from_memory(self):
         if self.model is not None:
             del self.model
@@ -62,7 +65,7 @@ class TemplateManager:
         self.template_file = template_file
         self.templates = self.load_templates()
 
-    @log_time
+    @log_performance
     def load_templates(self):
         if os.path.exists(self.template_file):
             with open(self.template_file, 'r') as file:
@@ -188,9 +191,9 @@ def generate_context(key, details):
         context_lines.append(f"{k.replace('_', ' ').title()}: {v}")
     return '\n'.join(context_lines)
 
-@log_time
+@log_performance
 def find_relevant_context(question, embeddings, data):
-    question_embedding = embedding_manager.embedding_model.encode(question, convert_to_tensor=True)
+    question_embedding = embedding_model.encode(question, convert_to_tensor=True)
     cosine_scores = util.pytorch_cos_sim(question_embedding, torch.stack(list(embeddings.values())))
     best_match_index = torch.argmax(cosine_scores).item()
     best_match_key = list(embeddings.keys())[best_match_index]
@@ -203,7 +206,7 @@ def determine_question_type(question, templates):
             return question_type
     return "Planting Guide"  # Default to planting guide if no keywords match
 
-@log_time
+@log_performance
 def generate_text(model, tokenizer, task_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping, use_template, templates, question_type):
     # Determine input text based on task type and template usage
     input_text = ""
@@ -242,10 +245,6 @@ def format_output(output):
 # Streamlit UI
 st.title("Crop Growing Guide Generator")
 st.write("Enter your question to generate a detailed guide.")
-
-# Initialize session state for debug information
-if 'debug_info' not in st.session_state:
-    st.session_state.debug_info = []
 
 # Initialize managers
 model_manager = ModelManager()
@@ -368,8 +367,3 @@ if question:
     st.write(f"Text (Code): {mem_info.text / (1024 ** 2):.2f} MB")
     st.write(f"Data + Stack: {mem_info.data / (1024 ** 2):.2f} MB")
     st.write(f"Library (unused): {mem_info.lib / (1024 ** 2):.2f} MB")
-
-# Display debug information
-st.sidebar.title("Debug Information")
-for info in st.session_state.debug_info:
-    st.sidebar.write(info)
