@@ -140,44 +140,41 @@ class TemplateManager:
 
 class CropDataManager:
     def __init__(self):
-        self.data = self.load_crop_data()
-
-    @log_time
-    @st.cache_resource
-    def load_crop_data(self):
-        return self.load_json_database('crop_data.json')
-
-    @log_time
-    def load_json_database(self, file_path):
-        with open(file_path, 'r') as file:
-            data = json.load(file)
-        return data
+        self.data = load_crop_data()
 
     def get_crop_data(self):
         return self.data
 
+@st.cache_resource
+def load_crop_data():
+    return load_json_database('crop_data.json')
+
+@st.cache_resource
+def load_json_database(file_path):
+    with open(file_path, 'r') as file:
+        data = json.load(file)
+    return data
+
 class EmbeddingManager:
     def __init__(self):
-        self.embedding_model = self.load_embedding_model()
+        self.embedding_model = load_embedding_model()
         self.embeddings = None
-
-    @log_time
-    @st.cache_resource
-    def load_embedding_model(self):
-        return SentenceTransformer('all-MiniLM-L6-v2')
-
-    @log_time
-    @st.cache_resource
-    def generate_embeddings(self, data):
-        keys = list(data.keys())
-        contexts = [generate_context(key, data[key]) for key in keys]
-        context_embeddings = self.embedding_model.encode(contexts, convert_to_tensor=True)
-        return dict(zip(keys, context_embeddings))
 
     def get_embeddings(self, data):
         if self.embeddings is None:
-            self.embeddings = self.generate_embeddings(data)
+            self.embeddings = generate_embeddings(self.embedding_model, data)
         return self.embeddings
+
+@st.cache_resource
+def load_embedding_model():
+    return SentenceTransformer('all-MiniLM-L6-v2')
+
+@st.cache_resource
+def generate_embeddings(embedding_model, data):
+    keys = list(data.keys())
+    contexts = [generate_context(key, data[key]) for key in keys]
+    context_embeddings = embedding_model.encode(contexts, convert_to_tensor=True)
+    return dict(zip(keys, context_embeddings))
 
 def generate_context(key, details):
     context_lines = []
@@ -310,17 +307,17 @@ if st.sidebar.button("Clear Cache and Reload Models"):
     st.experimental_rerun()
 
 if st.sidebar.button("Clear Cache and Reload Data"):
-    crop_data_manager.load_crop_data.clear()
-    embedding_manager.generate_embeddings.clear()
+    load_crop_data.clear()
+    generate_embeddings.clear()
     st.experimental_rerun()
 
 if st.sidebar.button("Clear Cache and Reload Templates"):
-    template_manager.load_templates.clear()
+    template_manager.load_templates()
     st.experimental_rerun()
 
 # Main input and processing section
 crop_data = crop_data_manager.get_crop_data()
-embedding_model = embedding_manager.load_embedding_model()
+embedding_model = embedding_manager.embedding_model
 model_manager.load_model(model_name)
 model, tokenizer = model_manager.get_model_and_tokenizer()
 embeddings = embedding_manager.get_embeddings(crop_data)
@@ -349,10 +346,9 @@ if question:
     
     # Calculate total memory usage and other memory usage
     total_memory_usage = memory_usage()
-    other_memory_usage = total_memory_usage - model_manager.model_memory_usage - memory_footprint
+    other_memory_usage = total_memory_usage - memory_footprint
     
     st.subheader("Memory Usage Details")
-    st.write(f"Model memory usage: {model_manager.model_memory_usage:.2f} MB")
     st.write(f"Memory used during generation: {memory_footprint:.2f} MB")
     st.write(f"Other memory usage: {other_memory_usage:.2f} MB")
     st.write(f"Total memory usage: {total_memory_usage:.2f} MB")
