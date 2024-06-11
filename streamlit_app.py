@@ -221,8 +221,8 @@ def normalize_attention_weights(attentions):
     normalized_attentions = avg_attentions / avg_attentions.max()
     return normalized_attentions[0].cpu().detach().numpy()
 
-def highlight_text(input_text, attention_weights):
-    tokens = input_text.split()
+def highlight_text(tokenizer, input_text, attention_weights):
+    tokens = tokenizer.convert_ids_to_tokens(tokenizer.encode(input_text, add_special_tokens=False))
     assert len(tokens) == len(attention_weights), "Mismatch between tokens and attention weights length"
     highlighted_text = ""
     for token, weight in zip(tokens, attention_weights):
@@ -331,7 +331,7 @@ if question:
     # Normalize and highlight the input text
     if attentions is not None:
         normalized_attentions = normalize_attention_weights(attentions)
-        highlighted_text = highlight_text(input_text, normalized_attentions)
+        highlighted_text = highlight_text(tokenizer, input_text, normalized_attentions)
         st.subheader("Highlighted Input Text Based on Attention Weights")
         st.markdown(f"<div style='border: 1px solid #ccc; padding: 10px; border-radius: 5px;'>{highlighted_text}</div>", unsafe_allow_html=True)
 
