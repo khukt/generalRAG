@@ -91,6 +91,30 @@ def generate_paragraph(model, tokenizer, question, context, max_length, num_beam
     answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
     return answer
 
+# Function to generate text word-by-word
+def generate_text_word_by_word(model, tokenizer, input_text, max_length, num_beams, no_repeat_ngram_size, early_stopping):
+    inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
+    output = []
+    past_key_values = None
+
+    for _ in range(max_length):
+        outputs = model.generate(
+            inputs if past_key_values is None else None,
+            max_length=1,
+            num_beams=num_beams,
+            no_repeat_ngram_size=no_repeat_ngram_size,
+            early_stopping=early_stopping,
+            past_key_values=past_key_values
+        )
+        next_token = outputs[0, -1].unsqueeze(0)
+        next_word = tokenizer.decode(next_token, skip_special_tokens=True)
+        output.append(next_word)
+        inputs = next_token.unsqueeze(0)
+        if next_word == tokenizer.eos_token:
+            break
+
+    return ' '.join(output)
+
 # Streamlit UI
 st.title("Optimized Crop Growing Guide Generator")
 st.write("Enter your question to generate a detailed guide.")
@@ -158,10 +182,10 @@ if model and tokenizer:
             st.write(f"Memory Usage: {step5_memory:.2f} MB")
             st.write(f"Computation Time: {step5_time:.2f} seconds")
 
-            # Step 6: Generate paragraph using the model
-            st.subheader("Step 6: Generate Guide")
+            # Step 6: Generate guide word-by-word
+            st.subheader("Step 6: Generate Guide Word-by-Word")
             with st.spinner("Generating guide..."):
-                guide = generate_paragraph(model, tokenizer, question, context, max_length=300, num_beams=5, no_repeat_ngram_size=2, early_stopping=True)
+                guide = generate_text_word_by_word(model, tokenizer, f"Question: {question}\nContext: {context}\nAnswer:", max_length=300, num_beams=5, no_repeat_ngram_size=2, early_stopping=True)
             st.write(guide)
             step6_memory = memory_usage()
             step6_time = measure_time(time.time())
