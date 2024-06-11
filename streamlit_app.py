@@ -6,13 +6,15 @@ from sentence_transformers import SentenceTransformer, util
 import json
 import os
 import psutil
+
+# Responsible AI and Logging
 import logging
+from datetime import datetime
 
 # Setup logger
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Logging functions
 def log_decision(message):
     logger.info(message)
 
@@ -42,7 +44,48 @@ def log_question(question):
 def log_generation_details(details):
     logger.info(f"Generation details: {details}")
 
-# Helper functions
+# Cache model loading
+@st.cache_resource
+def load_model(model_name):
+    model = T5ForConditionalGeneration.from_pretrained(model_name)
+    tokenizer = T5Tokenizer.from_pretrained(model_name, legacy=False)
+    log_model_usage(model_name)
+    return model, tokenizer
+
+# Cache embedding model loading
+@st.cache_resource
+def load_embedding_model():
+    model = SentenceTransformer('all-MiniLM-L6-v2')
+    log_decision("Loaded embedding model 'all-MiniLM-L6-v2'")
+    return model
+
+# Cache crop data loading
+@st.cache_resource
+def load_crop_data():
+    with open('crop_data.json', 'r') as file:
+        data = json.load(file)
+    log_decision(f"Loaded crop data from crop_data.json")
+    return data
+
+@log_performance
+def generate_embeddings(embedding_model, data):
+    keys = list(data.keys())
+    contexts = [generate_context(key, data[key]) for key in keys]
+    context_embeddings = embedding_model.encode(contexts, convert_to_tensor=True)
+    embeddings = dict(zip(keys, context_embeddings))
+    log_decision("Generated embeddings for crop data")
+    return embeddings
+
+def generate_context(key, details):
+    context_lines = []
+    for k, v in details.items():
+        if isinstance(v, list):
+            v = ', '.join(map(str, v))
+        elif isinstance(v, dict):
+            v = generate_context(k, v)  # Recursively handle nested dictionaries
+        context_lines.append(f"{k.replace('_', ' ').title()}: {v}")
+    return '\n'.join(context_lines)
+
 @log_performance
 def find_relevant_context(question, embeddings, data):
     question_embedding = embedding_model.encode(question, convert_to_tensor=True)
@@ -58,95 +101,47 @@ def determine_question_type(question, templates):
             return question_type
     return "Planting Guide"  # Default to planting guide if no keywords match
 
-@st.cache_data
-def load_model_and_tokenizer(model_name):
-    try:
-        model = T5ForConditionalGeneration.from_pretrained(model_name)
-        tokenizer = T5Tokenizer.from_pretrained(model_name, legacy=False)
-        log_model_usage(model_name)
-        return model, tokenizer
-    except Exception as e:
-        logger.error(f"Error loading model and tokenizer: {e}")
-        st.error(f"Error loading model and tokenizer: {e}")
-        return None, None
+# Template Manager
+class TemplateManager:
+    def __init__(self, template_file='templates.json'):
+        self.template_file = template_file
+        self.templates = self.load_templates()
 
-@st.cache_data
-def load_templates(template_file='templates.json'):
-    try:
-        if os.path.exists(template_file):
-            with open(template_file, 'r') as file:
+    @log_performance
+    def load_templates(self):
+        if os.path.exists(self.template_file):
+            with open(self.template_file, 'r') as file:
                 return json.load(file)
         else:
-            return default_templates()
-    except Exception as e:
-        logger.error(f"Error loading templates: {e}")
-        st.error(f"Error loading templates: {e}")
-        return default_templates()
+            return self.default_templates()
 
-def save_templates(template_file, templates):
-    try:
-        with open(template_file, 'w') as file:
-            json.dump(templates, file, indent=4)
-        log_decision(f"Saved templates to {template_file}")
-    except Exception as e:
-        logger.error(f"Error saving templates: {e}")
-        st.error(f"Error saving templates: {e}")
+    def save_templates(self):
+        with open(self.template_file, 'w') as file:
+            json.dump(self.templates, file, indent=4)
+        log_decision(f"Saved templates to {self.template_file}")
 
-def default_templates():
-    return {
-        "Planting Guide": {
-            "template": (
-                "Provide a guide on planting and growing the specified crop.\n\n"
-                "Question: {question}\n"
-                "Context: {context}\n"
-                "Guide:"
-            ),
-            "keywords": ["how", "grow", "plant", "cultivate"]
-        },
-        # Additional templates as in original code
-    }
+    def default_templates(self):
+        return {
+            "Planting Guide": {
+                "template": (
+                    "Provide a guide on planting and growing the specified crop.\n\n"
+                    "Question: {question}\n"
+                    "Context: {context}\n"
+                    "Guide:"
+                ),
+                "keywords": ["how", "grow", "plant", "cultivate"]
+            },
+            # Additional templates as in original code
+        }
 
-@st.cache_data
-def load_crop_data(file_path='crop_data.json'):
-    try:
-        with open(file_path, 'r') as file:
-            data = json.load(file)
-        log_decision(f"Loaded crop data from {file_path}")
-        return data
-    except Exception as e:
-        logger.error(f"Error loading crop data: {e}")
-        st.error(f"Error loading crop data: {e}")
-        return {}
+    def get_templates(self):
+        return self.templates
 
-@st.cache_resource
-def load_embedding_model():
-    try:
-        model = SentenceTransformer('all-MiniLM-L6-v2')
-        log_decision("Loaded embedding model 'all-MiniLM-L6-v2'")
-        return model
-    except Exception as e:
-        logger.error(f"Error loading embedding model: {e}")
-        st.error(f"Error loading embedding model: {e}")
-        return None
-
-@st.cache_data
-def generate_embeddings(_embedding_model, data):
-    keys = list(data.keys())
-    contexts = [generate_context(key, data[key]) for key in keys]
-    context_embeddings = _embedding_model.encode(contexts, convert_to_tensor=True)
-    embeddings = dict(zip(keys, context_embeddings))
-    log_decision("Generated embeddings for crop data")
-    return embeddings
-
-def generate_context(key, details):
-    context_lines = []
-    for k, v in details.items():
-        if isinstance(v, list):
-            v = ', '.join(map(str, v))
-        elif isinstance(v, dict):
-            v = generate_context(k, v)  # Recursively handle nested dictionaries
-        context_lines.append(f"{k.replace('_', ' ').title()}: {v}")
-    return '\n'.join(context_lines)
+    def update_template(self, question_type, template, keywords):
+        self.templates[question_type]["template"] = template
+        self.templates[question_type]["keywords"] = [keyword.strip() for keyword in keywords.split(',')]
+        self.save_templates()
+        log_decision(f"Updated template for {question_type}")
 
 @log_performance
 def generate_text(model, tokenizer, task_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping, use_template, templates, question_type):
@@ -209,19 +204,8 @@ def step_visualization(step_number, step_description, explanation):
     st.success(f"Step {step_number}: {step_description} completed.")
     st.info(explanation)
 
-# Load resources
-model_name = "google/flan-t5-base"
-model, tokenizer = load_model_and_tokenizer(model_name)
-if model is None or tokenizer is None:
-    st.stop()
-
-templates = load_templates()
-crop_data = load_crop_data()
-embedding_model = load_embedding_model()
-if embedding_model is None:
-    st.stop()
-
-embeddings = generate_embeddings(embedding_model, crop_data)
+# Initialize managers
+template_manager = TemplateManager()
 
 # Sidebar for model selection and parameters
 st.sidebar.title("Configuration")
@@ -246,28 +230,30 @@ early_stopping = st.sidebar.checkbox("Early Stopping", value=True)
 
 # Template configuration
 st.sidebar.title("Template Configuration")
-selected_question_type = st.sidebar.selectbox("Select Question Type", list(templates.keys()))
+selected_question_type = st.sidebar.selectbox("Select Question Type", list(template_manager.get_templates().keys()))
 
-template_input = st.sidebar.text_area("Template", value=templates[selected_question_type]["template"])
-keywords_input = st.sidebar.text_area("Keywords (comma separated)", value=", ".join(templates[selected_question_type]["keywords"]))
+template_input = st.sidebar.text_area("Template", value=template_manager.get_templates()[selected_question_type]["template"])
+keywords_input = st.sidebar.text_area("Keywords (comma separated)", value=", ".join(template_manager.get_templates()[selected_question_type]["keywords"]))
 if st.sidebar.button("Save Template"):
-    templates[selected_question_type]["template"] = template_input
-    templates[selected_question_type]["keywords"] = [keyword.strip() for keyword in keywords_input.split(',')]
-    save_templates('templates.json', templates)
+    template_manager.update_template(selected_question_type, template_input, keywords_input)
     st.sidebar.success("Template saved successfully!")
 
 # Buttons to clear cache and reload models, embeddings, and templates
 st.sidebar.title("Cache Management")
 if st.sidebar.button("Clear Cache and Reload Data"):
-    load_crop_data.clear()
-    generate_embeddings.clear()
     st.experimental_rerun()
 
 if st.sidebar.button("Clear Cache and Reload Templates"):
-    load_templates.clear()
+    template_manager.load_templates()
     st.experimental_rerun()
 
 # Main input and processing section
+model_name = "google/flan-t5-base"
+model, tokenizer = load_model(model_name)
+embedding_model = load_embedding_model()
+crop_data = load_crop_data()
+embeddings = generate_embeddings(embedding_model, crop_data)
+
 question = st.text_input("Question", value="How to grow tomatoes?", key="question")
 log_question(question)
 
@@ -287,7 +273,7 @@ if question:
     for key, score in zip(embeddings.keys(), cosine_scores[0]):
         st.write(f"{key}: {score.item():.2f}")
     
-    question_type = determine_question_type(question, templates)
+    question_type = determine_question_type(question, template_manager.get_templates())
     step_visualization(6, "Determining question type", "Based on the keywords in the question, we determine the type of question (e.g., planting guide, common issues). This helps in selecting the appropriate template for generating the response.")
     
     st.subheader("Detected Question Type")
@@ -299,7 +285,7 @@ if question:
     step_visualization(7, "Generating the text", "The text generation model uses the context and the question to generate a detailed guide. Parameters like max_length, num_beams, and no_repeat_ngram_size help in controlling the quality and length of the generated text.")
     
     with st.spinner("Generating..."):
-        guide, memory_footprint = generate_text(model, tokenizer, task_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping, use_template, templates, question_type)
+        guide, memory_footprint = generate_text(model, tokenizer, task_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping, use_template, template_manager.get_templates(), question_type)
     
     step_visualization(8, "Displaying the output", "The final output is displayed to the user. This output is the detailed guide generated by the model based on the user's question and the retrieved context.")
     
