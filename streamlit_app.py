@@ -49,7 +49,7 @@ def clear_model_from_memory():
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
     gc.collect()
-    st.experimental_rerun()  # Rerun the Streamlit app to ensure the model is fully cleared
+    st.rerun()  # Rerun the Streamlit app to ensure the model is fully cleared
 
 # Load the model and tokenizer
 @st.cache_resource
