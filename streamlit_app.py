@@ -1,5 +1,5 @@
 import streamlit as st
-from transformers import T5ForConditionalGeneration, T5Tokenizer
+from transformers import T5ForConditionalGeneration, T5Tokenizer, AutoModelForSeq2SeqLM, AutoTokenizer, GPT2LMHeadModel, GPT2Tokenizer
 from sentence_transformers import SentenceTransformer, util
 import json
 import torch
@@ -56,11 +56,15 @@ def clear_model_from_memory():
 def load_model(model_name):
     clear_model_from_memory()
     try:
-        if "t5" in model_name or "flan" in model_name:
+        if model_name in ["google/flan-t5-small", "google/flan-t5-base"]:
             model = T5ForConditionalGeneration.from_pretrained(model_name)
             tokenizer = T5Tokenizer.from_pretrained(model_name, legacy=False)
+        elif model_name == "gpt2":
+            model = GPT2LMHeadModel.from_pretrained(model_name)
+            tokenizer = GPT2Tokenizer.from_pretrained(model_name)
         else:
-            raise ValueError(f"Model {model_name} is not supported.")
+            model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+            tokenizer = AutoTokenizer.from_pretrained(model_name)
         st.session_state.model = model
         st.session_state.tokenizer = tokenizer
         return model, tokenizer
@@ -99,8 +103,12 @@ def generate_context(crop_name, crop_details):
 
 # Function to generate text based on input question and context
 def generate_paragraph(model, tokenizer, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping):
-    input_text = f"Question: {question}\nContext: {context}\nAnswer:"
-    inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
+    if isinstance(tokenizer, T5Tokenizer) or isinstance(tokenizer, AutoTokenizer):
+        input_text = f"Question: {question}\nContext: {context}\nAnswer:"
+        inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
+    else:
+        inputs = tokenizer.encode(context, return_tensors="pt", max_length=512, truncation=True)
+
     outputs = model.generate(
         inputs, max_length=max_length, num_beams=num_beams,
         no_repeat_ngram_size=no_repeat_ngram_size, early_stopping=early_stopping
@@ -113,7 +121,14 @@ st.title("Optimized Crop Growing Guide Generator")
 st.write("Enter your question to generate a detailed guide.")
 
 # Model selection
-model_name = st.selectbox("Select Model", ["google/flan-t5-small", "google/flan-t5-base"], index=1)
+model_options = [
+    "google/flan-t5-small",
+    "google/flan-t5-base",
+    "sentence-transformers/paraphrase-MiniLM-L6-v2",
+    "facebook/bart-large",
+    "gpt2"
+]
+model_name = st.selectbox("Select Model", model_options, index=1)
 model, tokenizer = load_model(model_name)
 
 # Add a button to clear model from memory
