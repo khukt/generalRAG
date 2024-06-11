@@ -1,5 +1,5 @@
 import streamlit as st
-from transformers import T5ForConditionalGeneration, T5Tokenizer, GPT2LMHeadModel, GPT2Tokenizer
+from transformers import T5ForConditionalGeneration, T5Tokenizer
 from sentence_transformers import SentenceTransformer, util
 import psutil
 import os
@@ -34,18 +34,13 @@ class ModelManager:
     def __init__(self):
         self.model = None
         self.tokenizer = None
+        self.load_model("google/flan-t5-base")
 
     @log_performance
     def load_model(self, model_name):
         self.clear_model_from_memory()
-        if "t5" in model_name or "flan" in model_name:
-            self.model = T5ForConditionalGeneration.from_pretrained(model_name)
-            self.tokenizer = T5Tokenizer.from_pretrained(model_name, legacy=False)
-        elif "gpt2" in model_name:
-            self.model = GPT2LMHeadModel.from_pretrained(model_name)
-            self.tokenizer = GPT2Tokenizer.from_pretrained(model_name)
-        else:
-            raise ValueError(f"Model {model_name} is not supported.")
+        self.model = T5ForConditionalGeneration.from_pretrained(model_name)
+        self.tokenizer = T5Tokenizer.from_pretrained(model_name, legacy=False)
         st.session_state.model = self.model
         st.session_state.tokenizer = self.tokenizer
 
@@ -256,38 +251,16 @@ crop_data_manager = CropDataManager()
 embedding_manager = EmbeddingManager()
 
 # Sidebar for model selection and parameters
-st.sidebar.title("Model Configuration")
-model_name = st.sidebar.selectbox(
-    "Select Model",
+st.sidebar.title("Configuration")
+task_type = st.sidebar.selectbox(
+    "Select Task",
     [
-        "google/flan-t5-small",
-        "google/flan-t5-base",
-        "distilgpt2",
-        "gpt2"
+        "Generation",
+        "Paraphrasing",
+        "Summarization"
     ],
-    index=1
+    index=0
 )
-
-if "t5" in model_name or "flan" in model_name:
-    task_type = st.sidebar.selectbox(
-        "Select Task",
-        [
-            "Generation",
-            "Paraphrasing",
-            "Summarization"
-        ],
-        index=0
-    )
-else:
-    task_type = st.sidebar.selectbox(
-        "Select Task",
-        [
-            "Generation",
-            "Paraphrasing",
-            "Continuation"
-        ],
-        index=0
-    )
 
 use_template = st.sidebar.checkbox("Use Template", value=True)
 
@@ -310,10 +283,6 @@ if st.sidebar.button("Save Template"):
 
 # Buttons to clear cache and reload models, embeddings, and templates
 st.sidebar.title("Cache Management")
-if st.sidebar.button("Clear Cache and Reload Models"):
-    model_manager.clear_model_from_memory()
-    st.experimental_rerun()
-
 if st.sidebar.button("Clear Cache and Reload Data"):
     load_crop_data.clear()
     generate_embeddings.clear()
@@ -326,7 +295,6 @@ if st.sidebar.button("Clear Cache and Reload Templates"):
 # Main input and processing section
 crop_data = crop_data_manager.get_crop_data()
 embedding_model = embedding_manager.embedding_model
-model_manager.load_model(model_name)
 model, tokenizer = model_manager.get_model_and_tokenizer()
 embeddings = embedding_manager.get_embeddings(crop_data)
 
