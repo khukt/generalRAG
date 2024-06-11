@@ -60,23 +60,37 @@ def determine_question_type(question, templates):
 
 @st.cache_data
 def load_model_and_tokenizer(model_name):
-    model = T5ForConditionalGeneration.from_pretrained(model_name)
-    tokenizer = T5Tokenizer.from_pretrained(model_name, legacy=False)
-    log_model_usage(model_name)
-    return model, tokenizer
+    try:
+        model = T5ForConditionalGeneration.from_pretrained(model_name)
+        tokenizer = T5Tokenizer.from_pretrained(model_name, legacy=False)
+        log_model_usage(model_name)
+        return model, tokenizer
+    except Exception as e:
+        logger.error(f"Error loading model and tokenizer: {e}")
+        st.error(f"Error loading model and tokenizer: {e}")
+        return None, None
 
 @st.cache_data
 def load_templates(template_file='templates.json'):
-    if os.path.exists(template_file):
-        with open(template_file, 'r') as file:
-            return json.load(file)
-    else:
+    try:
+        if os.path.exists(template_file):
+            with open(template_file, 'r') as file:
+                return json.load(file)
+        else:
+            return default_templates()
+    except Exception as e:
+        logger.error(f"Error loading templates: {e}")
+        st.error(f"Error loading templates: {e}")
         return default_templates()
 
 def save_templates(template_file, templates):
-    with open(template_file, 'w') as file:
-        json.dump(templates, file, indent=4)
-    log_decision(f"Saved templates to {template_file}")
+    try:
+        with open(template_file, 'w') as file:
+            json.dump(templates, file, indent=4)
+        log_decision(f"Saved templates to {template_file}")
+    except Exception as e:
+        logger.error(f"Error saving templates: {e}")
+        st.error(f"Error saving templates: {e}")
 
 def default_templates():
     return {
@@ -94,16 +108,26 @@ def default_templates():
 
 @st.cache_data
 def load_crop_data(file_path='crop_data.json'):
-    with open(file_path, 'r') as file:
-        data = json.load(file)
-    log_decision(f"Loaded crop data from {file_path}")
-    return data
+    try:
+        with open(file_path, 'r') as file:
+            data = json.load(file)
+        log_decision(f"Loaded crop data from {file_path}")
+        return data
+    except Exception as e:
+        logger.error(f"Error loading crop data: {e}")
+        st.error(f"Error loading crop data: {e}")
+        return {}
 
 @st.cache_resource
 def load_embedding_model():
-    model = SentenceTransformer('all-MiniLM-L6-v2')
-    log_decision("Loaded embedding model 'all-MiniLM-L6-v2'")
-    return model
+    try:
+        model = SentenceTransformer('all-MiniLM-L6-v2')
+        log_decision("Loaded embedding model 'all-MiniLM-L6-v2'")
+        return model
+    except Exception as e:
+        logger.error(f"Error loading embedding model: {e}")
+        st.error(f"Error loading embedding model: {e}")
+        return None
 
 @st.cache_data
 def generate_embeddings(_embedding_model, data):
@@ -188,9 +212,15 @@ def step_visualization(step_number, step_description, explanation):
 # Load resources
 model_name = "google/flan-t5-base"
 model, tokenizer = load_model_and_tokenizer(model_name)
+if model is None or tokenizer is None:
+    st.stop()
+
 templates = load_templates()
 crop_data = load_crop_data()
 embedding_model = load_embedding_model()
+if embedding_model is None:
+    st.stop()
+
 embeddings = generate_embeddings(embedding_model, crop_data)
 
 # Sidebar for model selection and parameters
