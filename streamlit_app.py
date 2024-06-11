@@ -57,7 +57,6 @@ def generate_context(key, details):
             v = ', '.join(map(str, v))
         elif isinstance(v, dict):
             v = generate_context(k, v)  # Recursively handle nested dictionaries
-        context_lines.append(f"{k.replace('_', ' ').title()
         context_lines.append(f"{k.replace('_', ' ').title()}: {v}")
     return '\n'.join(context_lines)
 
