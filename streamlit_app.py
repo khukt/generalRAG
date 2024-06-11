@@ -7,8 +7,8 @@ import json
 import torch
 import gc
 
-# Function to clear previous model from memory
-def clear_model_from_memory():
+# Function to clear memory and cache
+def clear_memory_cache():
     if "model" in st.session_state:
         del st.session_state.model
     if "tokenizer" in st.session_state:
@@ -16,10 +16,10 @@ def clear_model_from_memory():
     torch.cuda.empty_cache()
     gc.collect()
 
-# Cache the model and tokenizer to optimize memory usage
-@st.cache_resource
+# Function to load the model and tokenizer
+@st.cache_resource(show_spinner=False)
 def load_model(model_name):
-    clear_model_from_memory()
+    clear_memory_cache()
     if "t5" in model_name or "flan" in model_name:
         model = T5ForConditionalGeneration.from_pretrained(model_name)
         tokenizer = T5Tokenizer.from_pretrained(model_name, legacy=False)
@@ -31,28 +31,26 @@ def load_model(model_name):
         tokenizer = None  # No tokenizer needed for sentence-transformers
     else:
         raise ValueError(f"Model {model_name} is not supported.")
-    st.session_state.model = model
-    st.session_state.tokenizer = tokenizer
     return model, tokenizer
 
-# Load JSON database
-@st.cache_resource
+# Function to load JSON database
+@st.cache_resource(show_spinner=False)
 def load_json_database(file_path):
     with open(file_path, 'r') as file:
         data = json.load(file)
     return data
 
-# Load crop data from JSON file
-@st.cache_resource
+# Function to load crop data
+@st.cache_resource(show_spinner=False)
 def get_crop_data():
     return load_json_database('crop_data.json')
 
-# Load embedding model
-@st.cache_resource
+# Function to load embedding model
+@st.cache_resource(show_spinner=False)
 def load_embedding_model():
     return SentenceTransformer('all-MiniLM-L6-v2')
 
-# General function to generate context from details
+# Function to generate context from details
 def generate_context(key, details):
     context_lines = [f"{key.capitalize()}:"]
     for k, v in details.items():
@@ -63,8 +61,8 @@ def generate_context(key, details):
         context_lines.append(f"{k.replace('_', ' ').title()}: {v}")
     return '\n'.join(context_lines)
 
-# Generate embeddings for contexts in batches
-@st.cache_resource
+# Function to generate embeddings for contexts
+@st.cache_resource(show_spinner=False)
 def generate_embeddings(data):
     keys = list(data.keys())
     contexts = [generate_context(key, data[key]) for key in keys]
@@ -81,7 +79,7 @@ def memory_usage():
 model_memory_usage = memory_usage()
 
 # Function to find the most relevant context based on the question
-@st.cache_data
+@st.cache_data(show_spinner=False)
 def find_relevant_context(question, _embeddings):
     question_embedding = embedding_model.encode(question, convert_to_tensor=True)
     cosine_scores = util.pytorch_cos_sim(question_embedding, torch.stack(list(_embeddings.values())))
@@ -90,7 +88,7 @@ def find_relevant_context(question, _embeddings):
     return crop_data[best_match_key], best_match_key
 
 # Function to load templates
-@st.cache_resource
+@st.cache_resource(show_spinner=False)
 def load_templates(file_path='templates.json'):
     if os.path.exists(file_path):
         with open(file_path, 'r') as file:
@@ -215,8 +213,9 @@ model_name = st.selectbox(
 
 # Clear previous model cache if a new model is selected
 if "previous_model_name" in st.session_state and st.session_state.previous_model_name != model_name:
-    load_model.clear()
-    clear_model_from_memory()
+    st.cache_data.clear()
+    st.cache_resource.clear()
+    clear_memory_cache()
 
 st.session_state.previous_model_name = model_name
 
@@ -237,7 +236,8 @@ early_stopping = st.sidebar.checkbox("Early Stopping", value=True)
 # Buttons to clear cache and reload models
 st.sidebar.title("Cache Management")
 if st.sidebar.button("Clear Cache and Reload Models"):
-    load_model.clear()
+    st.cache_data.clear()
+    st.cache_resource.clear()
     st.experimental_rerun()
 
 if sentence:
