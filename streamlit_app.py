@@ -206,32 +206,42 @@ def determine_question_type(question, templates):
 
 @log_performance
 def generate_text(model, tokenizer, task_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping, use_template, templates, question_type):
-    # Determine input text based on task type and template usage
-    input_text = ""
-    if use_template:
-        input_text = templates[question_type]["template"].format(question=question, context=context)
-    else:
-        input_text = f"{context} {question}"
+    try:
+        # Determine input text based on task type and template usage
+        input_text = ""
+        if use_template:
+            input_text = templates[question_type]["template"].format(question=question, context=context)
+        else:
+            input_text = f"{context} {question}"
 
-    inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
-    
-    # Measure memory before generation
-    memory_before = memory_usage()
-    
-    outputs = model.generate(
-        inputs, 
-        max_length=max_length, 
-        num_beams=num_beams, 
-        no_repeat_ngram_size=no_repeat_ngram_size, 
-        early_stopping=early_stopping
-    )
-    
-    # Measure memory after generation
-    memory_after = memory_usage()
-    
-    memory_footprint = memory_after - memory_before
-    answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    return format_output(answer), memory_footprint
+        if task_type == "Paraphrasing":
+            input_text = f"paraphrase: {input_text}"
+        elif task_type == "Summarization":
+            input_text = f"summarize: {input_text}"
+
+        inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
+        
+        # Measure memory before generation
+        memory_before = memory_usage()
+        
+        outputs = model.generate(
+            inputs, 
+            max_length=max_length, 
+            num_beams=num_beams, 
+            no_repeat_ngram_size=no_repeat_ngram_size, 
+            early_stopping=early_stopping
+        )
+        
+        # Measure memory after generation
+        memory_after = memory_usage()
+        
+        memory_footprint = memory_after - memory_before
+        answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
+        return format_output(answer), memory_footprint
+
+    except Exception as e:
+        st.error(f"An error occurred during text generation: {e}")
+        return "", 0
 
 def format_output(output):
     sentences = output.split('. ')
