@@ -51,7 +51,7 @@ def find_relevant_context(question, embeddings, data):
     cosine_scores = util.pytorch_cos_sim(question_embedding, torch.stack(list(embeddings.values())))
     best_match_index = torch.argmax(cosine_scores).item()
     best_match_key = list(embeddings.keys())[best_match_index]
-    return data[best_match_key]
+    return best_match_key, data[best_match_key], cosine_scores
 
 def determine_question_type(question, templates):
     question = question.lower()
@@ -137,12 +137,12 @@ class CropDataManager:
 
     @log_performance
     @st.cache_resource
-    def load_crop_data(_self):
-        return _self.load_json_database('crop_data.json')
+    def load_crop_data(self):
+        return self.load_json_database('crop_data.json')
 
     @log_performance
     @st.cache_resource
-    def load_json_database(_self, file_path):
+    def load_json_database(self, file_path):
         with open(file_path, 'r') as file:
             data = json.load(file)
         log_decision(f"Loaded crop data from {file_path}")
@@ -242,58 +242,13 @@ def format_output(output):
         formatted_output += '.'
     return formatted_output
 
-# Interactive Animation for Process Flow
-def initialize_managers():
-    st.write("Loading the model...")
-    time.sleep(1)
-    st.write("Loading the templates...")
-    time.sleep(1)
-    st.write("Loading the crop data and constructing embeddings based on the model...")
-    time.sleep(2)
-    st.write("Initialization complete.")
-    
-def simulate_processing():
-    st.write("Getting user input...")
-    time.sleep(1)
-    
-    st.write("Finding relevant context, showing cosine similarity results...")
-    time.sleep(1)
-    
-    # Displaying a mock cosine similarity result
-    st.write("Cosine similarity results:")
-    st.write("Tomatoes: 0.95")
-    st.write("Potatoes: 0.80")
-    st.write("Carrots: 0.60")
-    time.sleep(1)
-    
-    st.write("Determining question type...")
-    time.sleep(1)
-    st.write("Detected question type: Planting Guide")
-    
-    st.write("Generating the text...")
-    time.sleep(2)
-    
-    st.write("Displaying the output...")
-    time.sleep(1)
-    st.markdown(
-        """
-        <div style='border: 1px solid #ccc; padding: 10px; border-radius: 5px;'>
-            Here is the detailed guide on planting tomatoes. Ensure you plant them in well-drained soil, water them regularly, and provide adequate sunlight.
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-# Streamlit UI for the process flow animation
+# Streamlit UI
 st.title("Crop Growing Guide Generator - Process Flow Visualization")
 
-if st.button("Start Visualization"):
-    initialize_managers()
-    simulate_processing()
-
-# Main App Functionality
-st.title("Crop Growing Guide Generator")
-st.write("Enter your question to generate a detailed guide.")
+def step_visualization(step_number, step_description):
+    with st.spinner(f"Step {step_number}: {step_description}..."):
+        time.sleep(1)
+    st.success(f"Step {step_number}: {step_description} completed.")
 
 # Initialize managers
 model_manager = ModelManager()
@@ -353,22 +308,37 @@ question = st.text_input("Question", value="How to grow tomatoes?", key="questio
 log_question(question)
 
 if question:
-    relevant_context = find_relevant_context(question, embeddings, crop_data)
+    step_visualization(1, "Loading the model")
+    step_visualization(2, "Loading the templates")
+    step_visualization(3, "Loading the crop data and constructing embeddings based on the model")
+    
+    best_match_key, relevant_context, cosine_scores = find_relevant_context(question, embeddings, crop_data)
     context = embedding_manager.generate_context("Crop", relevant_context)
+    
+    step_visualization(4, "Getting user input")
+    step_visualization(5, "Finding relevant context and showing cosine similarity results")
+    
+    # Display cosine similarity results
+    st.write("Cosine similarity results:")
+    for i, (key, score) in enumerate(zip(crop_data.keys(), cosine_scores[0])):
+        st.write(f"{key}: {score.item():.2f}")
+    
     question_type = determine_question_type(question, template_manager.get_templates())
-else:
-    context = ""
-    question_type = "Planting Guide"
+    step_visualization(6, "Determining question type")
+    
+    st.subheader("Detected Question Type")
+    st.write(f"**{question_type}**")
 
-st.subheader("Detected Question Type")
-st.write(f"**{question_type}**")
+    st.subheader("Context")
+    st.markdown(f"```{context}```")
 
-st.subheader("Context")
-st.markdown(f"```{context}```")
-
-if question:
+    step_visualization(7, "Generating the text")
+    
     with st.spinner("Generating..."):
         guide, memory_footprint = generate_text(model, tokenizer, task_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping, use_template, template_manager.get_templates(), question_type)
+    
+    step_visualization(8, "Displaying the output")
+    
     st.subheader("Generated Guide")
     st.markdown(f"<p style='border: 1px solid #ccc; padding: 10px; border-radius: 5px;'>{guide}</p>", unsafe_allow_html=True)
 
