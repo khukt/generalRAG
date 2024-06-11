@@ -1,5 +1,4 @@
 import streamlit as st
-from transformers import T5ForConditionalGeneration, T5Tokenizer, GPT2LMHeadModel, GPT2Tokenizer
 from sentence_transformers import SentenceTransformer, util
 import psutil
 import os
@@ -11,27 +10,15 @@ import gc
 def clear_memory_cache():
     if "model" in st.session_state:
         del st.session_state.model
-    if "tokenizer" in st.session_state:
-        del st.session_state.tokenizer
     torch.cuda.empty_cache()
     gc.collect()
 
-# Function to load the model and tokenizer
+# Function to load the model
 @st.cache_resource(show_spinner=False)
 def load_model(model_name):
     clear_memory_cache()
-    if "t5" in model_name or "flan" in model_name:
-        model = T5ForConditionalGeneration.from_pretrained(model_name)
-        tokenizer = T5Tokenizer.from_pretrained(model_name, legacy=False)
-    elif "gpt2" in model_name:
-        model = GPT2LMHeadModel.from_pretrained(model_name)
-        tokenizer = GPT2Tokenizer.from_pretrained(model_name)
-    elif "sentence-transformers" in model_name:
-        model = SentenceTransformer(model_name)
-        tokenizer = None  # No tokenizer needed for sentence-transformers
-    else:
-        raise ValueError(f"Model {model_name} is not supported.")
-    return model, tokenizer
+    model = SentenceTransformer(model_name)
+    return model
 
 # Function to load JSON database
 @st.cache_resource(show_spinner=False)
@@ -150,7 +137,7 @@ def load_templates(file_path='templates.json'):
                 "keywords": ["harvest", "harvesting", "pick", "picking"]
             }
         }
-        
+
 # Function to save templates
 def save_templates(templates, file_path='templates.json'):
     with open(file_path, 'w') as file:
@@ -159,60 +146,19 @@ def save_templates(templates, file_path='templates.json'):
 # Load existing templates or default ones
 templates = load_templates()
 
-# Function to perform paraphrasing
-def paraphrase(model, tokenizer, sentence, max_length, num_beams, no_repeat_ngram_size, early_stopping):
-    if isinstance(model, SentenceTransformer):
-        # Use the SentenceTransformer for paraphrasing
-        paraphrases = model.encode([sentence], convert_to_tensor=True)
-        # Decode embeddings to sentences (using cosine similarity)
-        paraphrases = util.paraphrase_mining(model, [sentence])
-        paraphrased_sentence = paraphrases[0][2]
-        return paraphrased_sentence, 0
-    else:
-        input_text = f"paraphrase: {sentence}"
-        inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
-        
-        # Measure memory before generation
-        memory_before = memory_usage()
-        
-        outputs = model.generate(
-            inputs, 
-            max_length=max_length, 
-            num_beams=num_beams, 
-            no_repeat_ngram_size=no_repeat_ngram_size, 
-            early_stopping=early_stopping
-        )
-        
-        # Measure memory after generation
-        memory_after = memory_usage()
-        
-        memory_footprint = memory_after - memory_before
-        answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
-        return format_output(answer), memory_footprint
-
-# Function to format the output into a well-written paragraph
-def format_output(output):
-    sentences = output.split('. ')
-    formatted_output = '. '.join(sentence.capitalize() for sentence in sentences if sentence)
-    if not formatted_output.endswith('.'):
-        formatted_output += '.'
-    return formatted_output
+# Function to perform paraphrasing using SentenceTransformer
+def paraphrase(model, sentence):
+    # Generate paraphrases using sentence embeddings and cosine similarity
+    paraphrases = util.paraphrase_mining(model, [sentence], top_k=5)
+    paraphrased_sentence = paraphrases[0][2]
+    return paraphrased_sentence
 
 # Streamlit UI
 st.title("Paraphrasing Task")
 st.write("Enter a sentence to generate its paraphrase.")
 
-# Add a selectbox for model selection
-model_name = st.selectbox(
-    "Select Model",
-    [
-        "google/flan-t5-small",
-        "google/flan-t5-base",
-        "sentence-transformers/paraphrase-MiniLM-L6-v2",
-        "gpt2"
-    ],
-    index=0
-)
+# Set model name for SentenceTransformer
+model_name = "sentence-transformers/paraphrase-MiniLM-L6-v2"
 
 # Clear previous model cache if a new model is selected
 if "previous_model_name" in st.session_state and st.session_state.previous_model_name != model_name:
@@ -224,17 +170,10 @@ st.session_state.previous_model_name = model_name
 
 crop_data = get_crop_data()
 embedding_model = load_embedding_model()
-model, tokenizer = load_model(model_name)
+model = load_model(model_name)
 embeddings = generate_embeddings(crop_data)
 
 sentence = st.text_input("Sentence", value="How to grow tomatoes?", key="sentence")
-
-# Additional controls for model.generate parameters in the sidebar
-st.sidebar.title("Model Parameters")
-max_length = st.sidebar.slider("Max Length", 50, 500, 300)
-num_beams = st.sidebar.slider("Number of Beams", 1, 10, 5)
-no_repeat_ngram_size = st.sidebar.slider("No Repeat N-Gram Size", 1, 10, 2)
-early_stopping = st.sidebar.checkbox("Early Stopping", value=True)
 
 # Buttons to clear cache and reload models
 st.sidebar.title("Cache Management")
@@ -245,18 +184,13 @@ if st.sidebar.button("Clear Cache and Reload Models"):
 
 if sentence:
     with st.spinner("Generating paraphrase..."):
-        paraphrased_sentence, memory_footprint = paraphrase(model, tokenizer, sentence, max_length, num_beams, no_repeat_ngram_size, early_stopping)
+        paraphrased_sentence = paraphrase(model, sentence)
     st.subheader("Generated Paraphrase")
     st.write(paraphrased_sentence)
     
     # Calculate total memory usage and other memory usage
     total_memory_usage = memory_usage()
-    other_memory_usage = total_memory_usage - model_memory_usage - memory_footprint
-    
     st.subheader("Memory Usage Details")
-    st.write(f"Model memory usage: {model_memory_usage:.2f} MB")
-    st.write(f"Memory used during generation: {memory_footprint:.2f} MB")
-    st.write(f"Other memory usage: {other_memory_usage:.2f} MB")
     st.write(f"Total memory usage: {total_memory_usage:.2f} MB")
 
 # Function to find the most relevant context based on the question
@@ -268,6 +202,6 @@ if sentence:
     
     # Paraphrase the relevant context
     with st.spinner("Paraphrasing context..."):
-        paraphrased_context, _ = paraphrase(model, tokenizer, context, max_length, num_beams, no_repeat_ngram_size, early_stopping)
+        paraphrased_context = paraphrase(model, context)
     st.subheader("Paraphrased Context")
     st.write(paraphrased_context)
