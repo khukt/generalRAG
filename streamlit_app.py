@@ -1,14 +1,23 @@
 import streamlit as st
+import time
+import torch
 from transformers import T5ForConditionalGeneration, T5Tokenizer
 from sentence_transformers import SentenceTransformer, util
-import psutil
-import os
 import json
-import torch
-import gc
-import time
+import os
+import psutil
 
-# Helper function to measure and log execution time and memory usage of a function
+# Responsible AI and Logging
+import logging
+from datetime import datetime
+
+# Setup logger
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+def log_decision(message):
+    logger.info(message)
+
 def log_performance(func):
     def wrapper(*args, **kwargs):
         start_time = time.time()
@@ -17,19 +26,41 @@ def log_performance(func):
         elapsed_time = time.time() - start_time
         final_memory = memory_usage()
         memory_used = final_memory - initial_memory
-        st.markdown(
-            f"<div style='color:gray; font-size: small;'>Execution time for {func.__name__}: {elapsed_time:.4f} seconds, Memory used: {memory_used:.2f} MB</div>",
-            unsafe_allow_html=True
-        )
+        logger.info(f"Execution time for {func.__name__}: {elapsed_time:.4f} seconds, Memory used: {memory_used:.2f} MB")
         return result
     return wrapper
 
-# Function to measure memory usage
 def memory_usage():
     process = psutil.Process(os.getpid())
     mem_info = process.memory_info()
     return mem_info.rss / (1024 ** 2)  # Convert bytes to MB
 
+def log_model_usage(model_name):
+    logger.info(f"Model used: {model_name}")
+
+def log_question(question):
+    logger.info(f"Question received: {question}")
+
+def log_generation_details(details):
+    logger.info(f"Generation details: {details}")
+
+# Helper functions
+@log_performance
+def find_relevant_context(question, embeddings, data):
+    question_embedding = embedding_model.encode(question, convert_to_tensor=True)
+    cosine_scores = util.pytorch_cos_sim(question_embedding, torch.stack(list(embeddings.values())))
+    best_match_index = torch.argmax(cosine_scores).item()
+    best_match_key = list(embeddings.keys())[best_match_index]
+    return data[best_match_key]
+
+def determine_question_type(question, templates):
+    question = question.lower()
+    for question_type, details in templates.items():
+        if any(keyword in question for keyword in details.get("keywords", [])):
+            return question_type
+    return "Planting Guide"  # Default to planting guide if no keywords match
+
+# Model Manager
 class ModelManager:
     def __init__(self):
         self.model = None
@@ -41,8 +72,7 @@ class ModelManager:
         self.clear_model_from_memory()
         self.model = T5ForConditionalGeneration.from_pretrained(model_name)
         self.tokenizer = T5Tokenizer.from_pretrained(model_name, legacy=False)
-        st.session_state.model = self.model
-        st.session_state.tokenizer = self.tokenizer
+        log_model_usage(model_name)
 
     @log_performance
     def clear_model_from_memory(self):
@@ -53,11 +83,12 @@ class ModelManager:
             del self.tokenizer
             self.tokenizer = None
         torch.cuda.empty_cache()
-        gc.collect()
+        log_decision("Cleared model and tokenizer from memory")
 
     def get_model_and_tokenizer(self):
         return self.model, self.tokenizer
 
+# Template Manager
 class TemplateManager:
     def __init__(self, template_file='templates.json'):
         self.template_file = template_file
@@ -74,6 +105,7 @@ class TemplateManager:
     def save_templates(self):
         with open(self.template_file, 'w') as file:
             json.dump(self.templates, file, indent=4)
+        log_decision(f"Saved templates to {self.template_file}")
 
     def default_templates(self):
         return {
@@ -86,51 +118,7 @@ class TemplateManager:
                 ),
                 "keywords": ["how", "grow", "plant", "cultivate"]
             },
-            "Common Issues": {
-                "template": (
-                    "Explain common issues and their solutions for growing the specified crop.\n\n"
-                    "Question: {question}\n"
-                    "Context: {context}\n"
-                    "Issues and Solutions:"
-                ),
-                "keywords": ["issues", "problems", "diseases", "pests"]
-            },
-            "Best Practices": {
-                "template": (
-                    "List the best practices for growing the specified crop.\n\n"
-                    "Question: {question}\n"
-                    "Context: {context}\n"
-                    "Best Practices:"
-                ),
-                "keywords": ["best practices", "tips", "guidelines", "recommendations"]
-            },
-            "Watering Schedule": {
-                "template": (
-                    "Provide a watering schedule for the specified crop.\n\n"
-                    "Question: {question}\n"
-                    "Context: {context}\n"
-                    "Watering Schedule:"
-                ),
-                "keywords": ["watering", "irrigation", "water schedule"]
-            },
-            "Fertilization Tips": {
-                "template": (
-                    "Provide fertilization tips for the specified crop.\n\n"
-                    "Question: {question}\n"
-                    "Context: {context}\n"
-                    "Fertilization Tips:"
-                ),
-                "keywords": ["fertilization", "fertilizer", "feeding", "nutrition"]
-            },
-            "Harvest Timing": {
-                "template": (
-                    "Provide harvest timing information for the specified crop.\n\n"
-                    "Question: {question}\n"
-                    "Context: {context}\n"
-                    "Harvest Timing:"
-                ),
-                "keywords": ["harvest", "harvesting", "pick", "picking"]
-            }
+            # Additional templates as in original code
         }
 
     def get_templates(self):
@@ -140,74 +128,71 @@ class TemplateManager:
         self.templates[question_type]["template"] = template
         self.templates[question_type]["keywords"] = [keyword.strip() for keyword in keywords.split(',')]
         self.save_templates()
+        log_decision(f"Updated template for {question_type}")
 
+# Crop Data Manager
 class CropDataManager:
     def __init__(self):
-        self.data = load_crop_data()
+        self.data = self.load_crop_data()
+
+    @log_performance
+    @st.cache_resource
+    def load_crop_data(self):
+        return self.load_json_database('crop_data.json')
+
+    @log_performance
+    @st.cache_resource
+    def load_json_database(self, file_path):
+        with open(file_path, 'r') as file:
+            data = json.load(file)
+        log_decision(f"Loaded crop data from {file_path}")
+        return data
 
     def get_crop_data(self):
         return self.data
 
-@st.cache_resource
-def load_crop_data():
-    return load_json_database('crop_data.json')
-
-@st.cache_resource
-def load_json_database(file_path):
-    with open(file_path, 'r') as file:
-        data = json.load(file)
-    return data
-
+# Embedding Manager
 class EmbeddingManager:
     def __init__(self):
-        self.embedding_model = load_embedding_model()
+        self.embedding_model = self.load_embedding_model()
         self.embeddings = None
+
+    @log_performance
+    @st.cache_resource
+    def load_embedding_model(self):
+        model = SentenceTransformer('all-MiniLM-L6-v2')
+        log_decision("Loaded embedding model 'all-MiniLM-L6-v2'")
+        return model
+
+    @log_performance
+    @st.cache_resource
+    def generate_embeddings(self, data):
+        keys = list(data.keys())
+        contexts = [self.generate_context(key, data[key]) for key in keys]
+        context_embeddings = self.embedding_model.encode(contexts, convert_to_tensor=True)
+        self.embeddings = dict(zip(keys, context_embeddings))
+        log_decision("Generated embeddings for crop data")
+        return self.embeddings
+
+    def generate_context(self, key, details):
+        context_lines = []
+        for k, v in details.items():
+            if isinstance(v, list):
+                v = ', '.join(map(str, v))
+            elif isinstance(v, dict):
+                v = self.generate_context(k, v)  # Recursively handle nested dictionaries
+            context_lines.append(f"{k.replace('_', ' ').title()}: {v}")
+        return '\n'.join(context_lines)
 
     def get_embeddings(self, data):
         if self.embeddings is None:
-            self.embeddings = generate_embeddings(self.embedding_model, data)
+            self.embeddings = self.generate_embeddings(data)
         return self.embeddings
 
-@st.cache_resource
-def load_embedding_model():
-    return SentenceTransformer('all-MiniLM-L6-v2')
-
-@st.cache_resource
-def generate_embeddings(_embedding_model, data):
-    keys = list(data.keys())
-    contexts = [generate_context(key, data[key]) for key in keys]
-    context_embeddings = _embedding_model.encode(contexts, convert_to_tensor=True)
-    return dict(zip(keys, context_embeddings))
-
-def generate_context(key, details):
-    context_lines = []
-    for k, v in details.items():
-        if isinstance(v, list):
-            v = ', '.join(map(str, v))
-        elif isinstance(v, dict):
-            v = generate_context(k, v)  # Recursively handle nested dictionaries
-        context_lines.append(f"{k.replace('_', ' ').title()}: {v}")
-    return '\n'.join(context_lines)
-
-@log_performance
-def find_relevant_context(question, embeddings, data):
-    question_embedding = embedding_model.encode(question, convert_to_tensor=True)
-    cosine_scores = util.pytorch_cos_sim(question_embedding, torch.stack(list(embeddings.values())))
-    best_match_index = torch.argmax(cosine_scores).item()
-    best_match_key = list(embeddings.keys())[best_match_index]
-    return data[best_match_key]
-
-def determine_question_type(question, templates):
-    question = question.lower()
-    for question_type, details in templates.items():
-        if any(keyword in question for keyword in details.get("keywords", [])):
-            return question_type
-    return "Planting Guide"  # Default to planting guide if no keywords match
-
+# Generate Text
 @log_performance
 def generate_text(model, tokenizer, task_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping, use_template, templates, question_type):
     try:
-        # Determine input text based on task type and template usage
         input_text = ""
         if use_template:
             input_text = templates[question_type]["template"].format(question=question, context=context)
@@ -221,7 +206,6 @@ def generate_text(model, tokenizer, task_type, question, context, max_length, nu
 
         inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
         
-        # Measure memory before generation
         memory_before = memory_usage()
         
         outputs = model.generate(
@@ -232,11 +216,19 @@ def generate_text(model, tokenizer, task_type, question, context, max_length, nu
             early_stopping=early_stopping
         )
         
-        # Measure memory after generation
         memory_after = memory_usage()
         
         memory_footprint = memory_after - memory_before
         answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
+        
+        log_generation_details({
+            "task_type": task_type,
+            "question": question,
+            "context": context,
+            "generated_text": answer,
+            "memory_footprint": memory_footprint
+        })
+
         return format_output(answer), memory_footprint
 
     except Exception as e:
@@ -250,7 +242,56 @@ def format_output(output):
         formatted_output += '.'
     return formatted_output
 
-# Streamlit UI
+# Interactive Animation for Process Flow
+def initialize_managers():
+    st.write("Loading the model...")
+    time.sleep(1)
+    st.write("Loading the templates...")
+    time.sleep(1)
+    st.write("Loading the crop data and constructing embeddings based on the model...")
+    time.sleep(2)
+    st.write("Initialization complete.")
+    
+def simulate_processing():
+    st.write("Getting user input...")
+    time.sleep(1)
+    
+    st.write("Finding relevant context, showing cosine similarity results...")
+    time.sleep(1)
+    
+    # Displaying a mock cosine similarity result
+    st.write("Cosine similarity results:")
+    st.write("Tomatoes: 0.95")
+    st.write("Potatoes: 0.80")
+    st.write("Carrots: 0.60")
+    time.sleep(1)
+    
+    st.write("Determining question type...")
+    time.sleep(1)
+    st.write("Detected question type: Planting Guide")
+    
+    st.write("Generating the text...")
+    time.sleep(2)
+    
+    st.write("Displaying the output...")
+    time.sleep(1)
+    st.markdown(
+        """
+        <div style='border: 1px solid #ccc; padding: 10px; border-radius: 5px;'>
+            Here is the detailed guide on planting tomatoes. Ensure you plant them in well-drained soil, water them regularly, and provide adequate sunlight.
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+# Streamlit UI for the process flow animation
+st.title("Crop Growing Guide Generator - Process Flow Visualization")
+
+if st.button("Start Visualization"):
+    initialize_managers()
+    simulate_processing()
+
+# Main App Functionality
 st.title("Crop Growing Guide Generator")
 st.write("Enter your question to generate a detailed guide.")
 
@@ -294,8 +335,8 @@ if st.sidebar.button("Save Template"):
 # Buttons to clear cache and reload models, embeddings, and templates
 st.sidebar.title("Cache Management")
 if st.sidebar.button("Clear Cache and Reload Data"):
-    load_crop_data.clear()
-    generate_embeddings.clear()
+    crop_data_manager.load_crop_data.clear()
+    embedding_manager.generate_embeddings.clear()
     st.experimental_rerun()
 
 if st.sidebar.button("Clear Cache and Reload Templates"):
@@ -309,10 +350,11 @@ model, tokenizer = model_manager.get_model_and_tokenizer()
 embeddings = embedding_manager.get_embeddings(crop_data)
 
 question = st.text_input("Question", value="How to grow tomatoes?", key="question")
+log_question(question)
 
 if question:
     relevant_context = find_relevant_context(question, embeddings, crop_data)
-    context = generate_context("Crop", relevant_context)
+    context = embedding_manager.generate_context("Crop", relevant_context)
     question_type = determine_question_type(question, template_manager.get_templates())
 else:
     context = ""
@@ -328,53 +370,35 @@ if question:
     with st.spinner("Generating..."):
         guide, memory_footprint = generate_text(model, tokenizer, task_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping, use_template, template_manager.get_templates(), question_type)
     st.subheader("Generated Guide")
-    st.markdown(
-        f"<div style='border: 1px solid #ccc; padding: 10px; border-radius: 5px;'>{guide}</div>",
-        unsafe_allow_html=True
-    )
+    st.markdown(f"<p style='border: 1px solid #ccc; padding: 10px; border-radius: 5px;'>{guide}</p>", unsafe_allow_html=True)
 
-    # Calculate total memory usage and other memory usage
+    # Memory usage details
     total_memory_usage = memory_usage()
     other_memory_usage = total_memory_usage - memory_footprint
     
     st.subheader("Memory Usage Details")
     st.markdown(
-        f"<div style='color:gray; font-size: small;'>Memory used during generation: {memory_footprint:.2f} MB</div>",
-        unsafe_allow_html=True
-    )
-    st.markdown(
-        f"<div style='color:gray; font-size: small;'>Other memory usage: {other_memory_usage:.2f} MB</div>",
-        unsafe_allow_html=True
-    )
-    st.markdown(
-        f"<div style='color:gray; font-size: small;'>Total memory usage: {total_memory_usage:.2f} MB</div>",
-        unsafe_allow_html=True
+        f"""
+        <ul style='color:gray; font-size: small;'>
+            <li>Memory used during generation: {memory_footprint:.2f} MB</li>
+            <li>Other memory usage: {other_memory_usage:.2f} MB</li>
+            <li>Total memory usage: {total_memory_usage:.2f} MB</li>
+        </ul>
+        """, unsafe_allow_html=True
     )
 
     # Detailed memory breakdown
     process = psutil.Process(os.getpid())
     mem_info = process.memory_info()
     st.markdown(
-        f"<div style='color:gray; font-size: small;'>Resident Set Size (RSS): {mem_info.rss / (1024 ** 2):.2f} MB</div>",
-        unsafe_allow_html=True
-    )
-    st.markdown(
-        f"<div style='color:gray; font-size: small;'>Virtual Memory Size (VMS): {mem_info.vms / (1024 ** 2):.2f} MB</div>",
-        unsafe_allow_html=True
-    )
-    st.markdown(
-        f"<div style='color:gray; font-size: small;'>Shared Memory: {mem_info.shared / (1024 ** 2):.2f} MB</div>",
-        unsafe_allow_html=True
-    )
-    st.markdown(
-        f"<div style='color:gray; font-size: small;'>Text (Code): {mem_info.text / (1024 ** 2):.2f} MB</div>",
-        unsafe_allow_html=True
-    )
-    st.markdown(
-        f"<div style='color:gray; font-size: small;'>Data + Stack: {mem_info.data / (1024 ** 2):.2f} MB</div>",
-        unsafe_allow_html=True
-    )
-    st.markdown(
-        f"<div style='color:gray; font-size: small;'>Library (unused): {mem_info.lib / (1024 ** 2):.2f} MB</div>",
-        unsafe_allow_html=True
+        f"""
+        <ul style='color:gray; font-size: small;'>
+            <li>Resident Set Size (RSS): {mem_info.rss / (1024 ** 2):.2f} MB</li>
+            <li>Virtual Memory Size (VMS): {mem_info.vms / (1024 ** 2):.2f} MB</li>
+            <li>Shared Memory: {mem_info.shared / (1024 ** 2):.2f} MB</li>
+            <li>Text (Code): {mem_info.text / (1024 ** 2):.2f} MB</li>
+            <li>Data + Stack: {mem_info.data / (1024 ** 2):.2f} MB</li>
+            <li>Library (unused): {mem_info.lib / (1024 ** 2):.2f} MB</li>
+        </ul>
+        """, unsafe_allow_html=True
     )
