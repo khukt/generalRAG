@@ -51,18 +51,22 @@ def clear_model_from_memory():
     gc.collect()
     st.rerun()  # Rerun the Streamlit app to ensure the model is fully cleared
 
-# Load the model and tokenizer
+# Load the model and tokenizer with error handling
 @st.cache_resource
 def load_model(model_name):
     clear_model_from_memory()
-    if "t5" in model_name or "flan" in model_name:
-        model = T5ForConditionalGeneration.from_pretrained(model_name)
-        tokenizer = T5Tokenizer.from_pretrained(model_name, legacy=False)
-    else:
-        raise ValueError(f"Model {model_name} is not supported.")
-    st.session_state.model = model
-    st.session_state.tokenizer = tokenizer
-    return model, tokenizer
+    try:
+        if "t5" in model_name or "flan" in model_name:
+            model = T5ForConditionalGeneration.from_pretrained(model_name)
+            tokenizer = T5Tokenizer.from_pretrained(model_name, legacy=False)
+        else:
+            raise ValueError(f"Model {model_name} is not supported.")
+        st.session_state.model = model
+        st.session_state.tokenizer = tokenizer
+        return model, tokenizer
+    except Exception as e:
+        st.error(f"Failed to load model {model_name}: {e}")
+        return None, None
 
 # Function to measure memory usage
 def memory_usage():
@@ -116,32 +120,35 @@ model, tokenizer = load_model(model_name)
 if st.button('Clear Model from Memory'):
     clear_model_from_memory()
 
-# User question input
-question = st.text_input("Question", value="How to grow tomatoes?", key="question")
+if model and tokenizer:
+    # User question input
+    question = st.text_input("Question", value="How to grow tomatoes?", key="question")
 
-if question:
-    # Retrieve relevant context using embeddings
-    embedding_model = load_embedding_model()
-    embeddings = generate_embeddings(crop_data)
-    question_embedding = embedding_model.encode(question, convert_to_tensor=True)
-    cosine_scores = util.pytorch_cos_sim(question_embedding, torch.stack(list(embeddings.values())))
-    best_match_index = torch.argmax(cosine_scores).item()
-    relevant_crop = list(crop_data.keys())[best_match_index]
-    relevant_crop_details = crop_data[relevant_crop]
+    if question:
+        # Retrieve relevant context using embeddings
+        embedding_model = load_embedding_model()
+        embeddings = generate_embeddings(crop_data)
+        question_embedding = embedding_model.encode(question, convert_to_tensor=True)
+        cosine_scores = util.pytorch_cos_sim(question_embedding, torch.stack(list(embeddings.values())))
+        best_match_index = torch.argmax(cosine_scores).item()
+        relevant_crop = list(crop_data.keys())[best_match_index]
+        relevant_crop_details = crop_data[relevant_crop]
 
-    if relevant_crop_details:
-        context = generate_context(relevant_crop, relevant_crop_details)
-        st.subheader("Generated Context")
-        st.write(f"```{context}```")
+        if relevant_crop_details:
+            context = generate_context(relevant_crop, relevant_crop_details)
+            st.subheader("Generated Context")
+            st.write(f"```{context}```")
 
-        with st.spinner("Generating guide..."):
-            guide = generate_paragraph(model, tokenizer, question, context, max_length=300, num_beams=5, no_repeat_ngram_size=2, early_stopping=True)
-        st.subheader("Generated Guide")
-        st.write(guide)
+            with st.spinner("Generating guide..."):
+                guide = generate_paragraph(model, tokenizer, question, context, max_length=300, num_beams=5, no_repeat_ngram_size=2, early_stopping=True)
+            st.subheader("Generated Guide")
+            st.write(guide)
 
-        # Memory usage details
-        total_memory_usage = memory_usage()
-        st.subheader("Memory Usage Details")
-        st.write(f"Total memory usage: {total_memory_usage:.2f} MB")
-    else:
-        st.write("No relevant crop found in the database for the given question.")
+            # Memory usage details
+            total_memory_usage = memory_usage()
+            st.subheader("Memory Usage Details")
+            st.write(f"Total memory usage: {total_memory_usage:.2f} MB")
+        else:
+            st.write("No relevant crop found in the database for the given question.")
+else:
+    st.write("Model could not be loaded. Please try selecting a different model or check for errors.")
