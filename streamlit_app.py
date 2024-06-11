@@ -6,6 +6,7 @@ import torch
 import gc
 import psutil
 import os
+import time
 
 # Function to clear previous model from memory
 def clear_model_from_memory():
@@ -50,6 +51,10 @@ def memory_usage():
     process = psutil.Process(os.getpid())
     mem_info = process.memory_info()
     return mem_info.rss / (1024 ** 2)  # Convert bytes to MB
+
+# Function to measure computation time
+def measure_time(start_time):
+    return time.time() - start_time
 
 # Load embedding model
 @st.cache_resource
@@ -106,35 +111,69 @@ if st.button('Clear Model from Memory'):
     clear_model_from_memory()
 
 if model and tokenizer:
-    # User question input
+    # Step 1: User question input
+    st.subheader("Step 1: User Question Input")
     question = st.text_input("Question", value="How to grow tomatoes?", key="question")
+    step1_memory = memory_usage()
+    step1_time = measure_time(time.time())
+    st.write(f"Memory Usage: {step1_memory:.2f} MB")
+    st.write(f"Computation Time: {step1_time:.2f} seconds")
 
     if question:
-        # Load crop data from JSON file
+        # Step 2: Load crop data from JSON file
+        st.subheader("Step 2: Load Crop Data from JSON File")
         crop_data = load_json_database('crop_data.json')
+        step2_memory = memory_usage()
+        step2_time = measure_time(time.time())
+        st.write(f"Memory Usage: {step2_memory:.2f} MB")
+        st.write(f"Computation Time: {step2_time:.2f} seconds")
 
-        # Retrieve relevant context using embeddings
+        # Step 3: Generate embeddings for contexts
+        st.subheader("Step 3: Generate Embeddings for Contexts")
         embeddings = generate_embeddings(crop_data)
+        step3_memory = memory_usage()
+        step3_time = measure_time(time.time())
+        st.write(f"Memory Usage: {step3_memory:.2f} MB")
+        st.write(f"Computation Time: {step3_time:.2f} seconds")
+
+        # Step 4: Compute cosine similarity between question and contexts
+        st.subheader("Step 4: Compute Cosine Similarity")
         question_embedding = load_embedding_model().encode(question, convert_to_tensor=True)
         cosine_scores = util.pytorch_cos_sim(question_embedding, torch.stack(list(embeddings.values())))
         best_match_index = torch.argmax(cosine_scores).item()
         relevant_crop = list(crop_data.keys())[best_match_index]
         relevant_crop_details = crop_data[relevant_crop]
+        step4_memory = memory_usage()
+        step4_time = measure_time(time.time())
+        st.write(f"Memory Usage: {step4_memory:.2f} MB")
+        st.write(f"Computation Time: {step4_time:.2f} seconds")
 
         if relevant_crop_details:
+            # Step 5: Generate context from relevant crop details
+            st.subheader("Step 5: Generate Context from Relevant Crop Details")
             context = generate_context(relevant_crop, relevant_crop_details)
-            st.subheader("Generated Context")
             st.write(f"```{context}```")
+            step5_memory = memory_usage()
+            step5_time = measure_time(time.time())
+            st.write(f"Memory Usage: {step5_memory:.2f} MB")
+            st.write(f"Computation Time: {step5_time:.2f} seconds")
 
+            # Step 6: Generate paragraph using the model
+            st.subheader("Step 6: Generate Guide")
             with st.spinner("Generating guide..."):
                 guide = generate_paragraph(model, tokenizer, question, context, max_length=300, num_beams=5, no_repeat_ngram_size=2, early_stopping=True)
-            st.subheader("Generated Guide")
             st.write(guide)
+            step6_memory = memory_usage()
+            step6_time = measure_time(time.time())
+            st.write(f"Memory Usage: {step6_memory:.2f} MB")
+            st.write(f"Computation Time: {step6_time:.2f} seconds")
 
-            # Memory usage details
+            # Step 7: Display total memory usage and computation time
+            st.subheader("Step 7: Memory Usage and Computation Time Details")
             total_memory_usage = memory_usage()
-            st.subheader("Memory Usage Details")
-            st.write(f"Total memory usage: {total_memory_usage:.2f} MB")
+            total_computation_time = step1_time + step2_time + step3_time + step4_time + step5_time + step6_time
+            st.write(f"Total Memory Usage: {total_memory_usage:.2f} MB")
+            st.write(f"Total Computation Time: {total_computation_time:.2f} seconds")
         else:
             st.write("No relevant crop found in the database for the given question.")
 else:
