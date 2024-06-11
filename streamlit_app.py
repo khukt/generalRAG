@@ -46,8 +46,10 @@ def clear_model_from_memory():
         del st.session_state.model
     if "tokenizer" in st.session_state:
         del st.session_state.tokenizer
-    torch.cuda.empty_cache()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
     gc.collect()
+    st.experimental_rerun()  # Rerun the Streamlit app to ensure the model is fully cleared
 
 # Load the model and tokenizer
 @st.cache_resource
@@ -109,6 +111,10 @@ st.write("Enter your question to generate a detailed guide.")
 # Model selection
 model_name = st.selectbox("Select Model", ["google/flan-t5-small", "google/flan-t5-base"], index=1)
 model, tokenizer = load_model(model_name)
+
+# Add a button to clear model from memory
+if st.button('Clear Model from Memory'):
+    clear_model_from_memory()
 
 # User question input
 question = st.text_input("Question", value="How to grow tomatoes?", key="question")
