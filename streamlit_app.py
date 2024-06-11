@@ -149,8 +149,12 @@ templates = load_templates()
 # Function to perform paraphrasing using SentenceTransformer
 def paraphrase(model, sentence):
     # Generate paraphrases using sentence embeddings and cosine similarity
-    paraphrases = util.paraphrase_mining(model, [sentence], top_k=5)
-    paraphrased_sentence = paraphrases[0][2]
+    sentences = [sentence, sentence + '.', sentence + '?', 'Please tell me ' + sentence]
+    paraphrases = util.paraphrase_mining(model, sentences, top_k=5)
+    if paraphrases:
+        paraphrased_sentence = paraphrases[0][2]
+    else:
+        paraphrased_sentence = "No paraphrase found."
     return paraphrased_sentence
 
 # Streamlit UI
