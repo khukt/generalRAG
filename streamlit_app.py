@@ -150,7 +150,7 @@ def load_templates(file_path='templates.json'):
                 "keywords": ["harvest", "harvesting", "pick", "picking"]
             }
         }
-
+        
 # Function to save templates
 def save_templates(templates, file_path='templates.json':
     with open(file_path, 'w') as file:
