@@ -1,5 +1,5 @@
 import streamlit as st
-from transformers import T5ForConditionalGeneration, T5Tokenizer, GPT2LMHeadModel, GPT2Tokenizer, pipeline
+from transformers import T5ForConditionalGeneration, T5Tokenizer, GPT2LMHeadModel, GPT2Tokenizer
 from sentence_transformers import SentenceTransformer, util
 import psutil
 import os
@@ -213,18 +213,13 @@ def format_output(output):
         formatted_output += '.'
     return formatted_output
 
-# Function to explain model predictions using LIME
-def explain_model_predictions(model, tokenizer, input_text):
-    explainer = pipeline("text-classification", model=model, tokenizer=tokenizer)
-    explanation = explainer(input_text)
-    return explanation
-
 # Streamlit UI
 st.title("Crop Growing Guide Generator")
 st.write("Enter your question to generate a detailed guide.")
 
-# Add a selectbox for model selection
-model_name = st.selectbox(
+# Sidebar for model selection and parameters
+st.sidebar.title("Model Configuration")
+model_name = st.sidebar.selectbox(
     "Select Model",
     [
         "google/flan-t5-small",
@@ -235,9 +230,8 @@ model_name = st.selectbox(
     index=1
 )
 
-# Add a selectbox for task selection
 if "t5" in model_name or "flan" in model_name:
-    task_type = st.selectbox(
+    task_type = st.sidebar.selectbox(
         "Select Task",
         [
             "Generation",
@@ -247,7 +241,7 @@ if "t5" in model_name or "flan" in model_name:
         index=0
     )
 else:
-    task_type = st.selectbox(
+    task_type = st.sidebar.selectbox(
         "Select Task",
         [
             "Generation",
@@ -257,8 +251,7 @@ else:
         index=0
     )
 
-# Add a checkbox to enable or disable template usage
-use_template = st.checkbox("Use Template", value=True)
+use_template = st.sidebar.checkbox("Use Template", value=True)
 
 # Clear previous model cache if a new model is selected
 if "previous_model_name" in st.session_state and st.session_state.previous_model_name != model_name:
@@ -340,7 +333,12 @@ if question:
     st.write(f"Other memory usage: {other_memory_usage:.2f} MB")
     st.write(f"Total memory usage: {total_memory_usage:.2f} MB")
 
-    # Explain model predictions
-    st.subheader("Explainable AI")
-    explanation = explain_model_predictions(model, tokenizer, question)
-    st.write("Explanation:", explanation)
+    # Detailed memory breakdown
+    process = psutil.Process(os.getpid())
+    mem_info = process.memory_info()
+    st.write(f"Resident Set Size (RSS): {mem_info.rss / (1024 ** 2):.2f} MB")
+    st.write(f"Virtual Memory Size (VMS): {mem_info.vms / (1024 ** 2):.2f} MB")
+    st.write(f"Shared Memory: {mem_info.shared / (1024 ** 2):.2f} MB")
+    st.write(f"Text (Code): {mem_info.text / (1024 ** 2):.2f} MB")
+    st.write(f"Data + Stack: {mem_info.data / (1024 ** 2):.2f} MB")
+    st.write(f"Library (unused): {mem_info.lib / (1024 ** 2):.2f} MB")
