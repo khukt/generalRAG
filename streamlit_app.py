@@ -43,7 +43,6 @@ def load_model(model_name):
     st.session_state.tokenizer = tokenizer
     return model, tokenizer
 
-
 # Load embedding model
 @st.cache_resource
 def load_embedding_model():
@@ -98,7 +97,7 @@ def determine_question_type(question, templates):
 @st.cache_resource
 def load_templates(file_path='templates.json'):
     if os.path.exists(file_path):
-        with open(file_path, 'r') as file:
+        with open(file_path, 'r') as file):
             return json.load(file)
     else:
         return {
@@ -160,7 +159,7 @@ def load_templates(file_path='templates.json'):
 
 # Function to save templates
 def save_templates(templates, file_path='templates.json'):
-    with open(file_path, 'w') as file:
+    with open(file_path, 'w') as file):
         json.dump(templates, file, indent=4)
 
 # Load existing templates or default ones
@@ -209,8 +208,11 @@ model_name = st.selectbox(
         "google/flan-t5-base",
         "t5-small",
         "t5-base",
-        "KETI-AIR/ke-t5-base",
-        "distilgpt2"
+        "t5-small-lm-adapt",
+        "t5-base-lm-adapt",
+        "t5-large-lm-adapt",
+        "google/mt5-small",
+        "google/mt5-base",
     ],
     index=1
 )
@@ -218,6 +220,7 @@ model_name = st.selectbox(
 # Clear previous model cache if a new model is selected
 if "previous_model_name" in st.session_state and st.session_state.previous_model_name != model_name:
     load_model.clear()
+    clear_model_from_memory()
 
 st.session_state.previous_model_name = model_name
 
