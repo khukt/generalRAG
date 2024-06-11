@@ -167,14 +167,22 @@ def save_templates(templates, file_path='templates.json'):
 templates = load_templates()
 
 # Function to generate text based on input question and context
-def generate_text(model, tokenizer, task_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping):
+def generate_text(model, tokenizer, task_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping, use_template):
     input_text = ""
-    if task_type == "Generation":
-        input_text = templates[question_type]["template"].format(question=question, context=context)
-    elif task_type == "Paraphrasing":
-        input_text = f"paraphrase: {context} {question}"
-    elif task_type == "Summarization":
-        input_text = f"summarize: {context} {question}"
+    if use_template:
+        if task_type == "Generation":
+            input_text = templates[question_type]["template"].format(question=question, context=context)
+        elif task_type == "Paraphrasing":
+            input_text = f"paraphrase: {context} {question}"
+        elif task_type == "Summarization":
+            input_text = f"summarize: {context} {question}"
+    else:
+        if task_type == "Generation":
+            input_text = f"{context} {question}"
+        elif task_type == "Paraphrasing":
+            input_text = f"paraphrase: {context} {question}"
+        elif task_type == "Summarization":
+            input_text = f"summarize: {context} {question}"
 
     inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
     
@@ -228,6 +236,9 @@ task_type = st.selectbox(
     ],
     index=0
 )
+
+# Add a checkbox to enable or disable template usage
+use_template = st.checkbox("Use Template", value=True)
 
 # Clear previous model cache if a new model is selected
 if "previous_model_name" in st.session_state and st.session_state.previous_model_name != model_name:
@@ -295,7 +306,7 @@ if st.sidebar.button("Clear Cache and Reload Templates"):
 
 if question:
     with st.spinner("Generating..."):
-        guide, memory_footprint = generate_text(model, tokenizer, task_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping)
+        guide, memory_footprint = generate_text(model, tokenizer, task_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping, use_template)
     st.subheader("Generated Guide")
     st.write(guide)
     
