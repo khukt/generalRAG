@@ -158,6 +158,7 @@ class EmbeddingManager:
         if 'embeddings' not in st.session_state:
             self.embedding_model = self.load_embedding_model()
             self.embeddings = self.generate_embeddings(crop_data_manager.get_crop_data())
+            st.session_state.embedding_model = self.embedding_model
             st.session_state.embeddings = self.embeddings
         else:
             self.embedding_model = st.session_state.embedding_model
@@ -176,9 +177,9 @@ class EmbeddingManager:
         keys = list(data.keys())
         contexts = [_self.generate_context(key, data[key]) for key in keys]
         context_embeddings = _self.embedding_model.encode(contexts, convert_to_tensor=True)
-        _self.embeddings = dict(zip(keys, context_embeddings))
+        embeddings = dict(zip(keys, context_embeddings))
         log_decision("Generated embeddings for crop data")
-        return _self.embeddings
+        return embeddings
 
     def generate_context(self, key, details):
         context_lines = []
