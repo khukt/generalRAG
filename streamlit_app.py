@@ -129,6 +129,8 @@ model_options = [
     "gpt2"
 ]
 model_name = st.selectbox("Select Model", model_options, index=1)
+st.write(f"Selected model: {model_name}")
+
 model, tokenizer = load_model(model_name)
 
 # Add a button to clear model from memory
