@@ -45,10 +45,12 @@ class ModelManager:
 
     @log_time
     def clear_model_from_memory(self):
-        if "model" in st.session_state:
-            del st.session_state.model
-        if "tokenizer" in st.session_state:
-            del st.session_state.tokenizer
+        if self.model is not None:
+            del self.model
+            self.model = None
+        if self.tokenizer is not None:
+            del self.tokenizer
+            self.tokenizer = None
         torch.cuda.empty_cache()
         gc.collect()
 
@@ -170,10 +172,10 @@ def load_embedding_model():
     return SentenceTransformer('all-MiniLM-L6-v2')
 
 @st.cache_resource
-def generate_embeddings(embedding_model, data):
+def generate_embeddings(_embedding_model, data):
     keys = list(data.keys())
     contexts = [generate_context(key, data[key]) for key in keys]
-    context_embeddings = embedding_model.encode(contexts, convert_to_tensor=True)
+    context_embeddings = _embedding_model.encode(contexts, convert_to_tensor=True)
     return dict(zip(keys, context_embeddings))
 
 def generate_context(key, details):
