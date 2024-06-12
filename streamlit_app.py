@@ -71,46 +71,46 @@ def step_visualization(step_number, step_description, explanation):
     st.success(f"Step {step_number}: {step_description} completed.")
     st.info(explanation)
 
+# Cache functions
+@st.cache_resource
+def load_model(model_name):
+    model = T5ForConditionalGeneration.from_pretrained(model_name, output_attentions=True)
+    tokenizer = T5Tokenizer.from_pretrained(model_name, legacy=False)
+    log_model_usage(model_name)
+    return model, tokenizer
+
+@st.cache_resource
+def load_embedding_model():
+    model = SentenceTransformer('all-MiniLM-L6-v2')
+    log_decision("Loaded embedding model 'all-MiniLM-L6-v2'")
+    return model
+
+@st.cache_resource
+def load_crop_data():
+    with open('crop_data.json', 'r') as file:
+        data = json.load(file)
+    log_decision(f"Loaded crop data from crop_data.json")
+    return data
+
+@st.cache_data
+def generate_and_cache_embeddings(_embedding_model, data, generate_context_func):
+    keys = list(data.keys())
+    contexts = [generate_context_func(key, data[key]) for key in keys]
+    context_embeddings = _embedding_model.encode(contexts, convert_to_tensor=True)
+    embeddings = {key: embedding.cpu().numpy() for key, embedding in zip(keys, context_embeddings)}
+    log_decision("Generated and cached embeddings for crop data")
+    return embeddings
+
 # Manager classes
 class ModelManager:
     def __init__(self, model_name):
         self.model_name = model_name
-        self.model, self.tokenizer = self.load_model(model_name)
-
-    @st.cache_resource
-    def load_model(_self, model_name):
-        model = T5ForConditionalGeneration.from_pretrained(model_name, output_attentions=True)
-        tokenizer = T5Tokenizer.from_pretrained(model_name, legacy=False)
-        log_model_usage(model_name)
-        return model, tokenizer
+        self.model, self.tokenizer = load_model(model_name)
 
 class EmbeddingManager:
     def __init__(self):
-        self.embedding_model = self.load_embedding_model()
-        self.embeddings = None
-        self.crop_data = self.load_crop_data()
-
-    @st.cache_resource
-    def load_embedding_model(_self):
-        model = SentenceTransformer('all-MiniLM-L6-v2')
-        log_decision("Loaded embedding model 'all-MiniLM-L6-v2'")
-        return model
-
-    @st.cache_data
-    def generate_and_cache_embeddings(_self, _embedding_model, data):
-        keys = list(data.keys())
-        contexts = [self.generate_context(key, data[key]) for key in keys]
-        context_embeddings = _embedding_model.encode(contexts, convert_to_tensor=True)
-        embeddings = {key: embedding.cpu().numpy() for key, embedding in zip(keys, context_embeddings)}
-        log_decision("Generated and cached embeddings for crop data")
-        return embeddings
-
-    @st.cache_resource
-    def load_crop_data(_self):
-        with open('crop_data.json', 'r') as file:
-            data = json.load(file)
-        log_decision(f"Loaded crop data from crop_data.json")
-        return data
+        self.embedding_model = load_embedding_model()
+        self.crop_data = load_crop_data()
 
     def generate_context(self, key, details):
         context_lines = []
@@ -253,7 +253,7 @@ template_manager = TemplateManager()
 
 # Load embeddings
 if "embeddings" not in st.session_state:
-    st.session_state.embeddings = embedding_manager.generate_and_cache_embeddings(embedding_manager.embedding_model, embedding_manager.crop_data)
+    st.session_state.embeddings = generate_and_cache_embeddings(embedding_manager.embedding_model, embedding_manager.crop_data, embedding_manager.generate_context)
 
 # Sidebar configuration
 st.sidebar.title("Configuration")
