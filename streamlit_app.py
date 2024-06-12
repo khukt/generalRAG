@@ -88,6 +88,7 @@ class EmbeddingManager:
     def __init__(self):
         self.embedding_model = self.load_embedding_model()
         self.embeddings = None
+        self.crop_data = self.load_crop_data()
 
     @st.cache_resource
     def load_embedding_model(_self):
@@ -103,6 +104,13 @@ class EmbeddingManager:
         embeddings = {key: embedding.cpu().numpy() for key, embedding in zip(keys, context_embeddings)}
         log_decision("Generated and cached embeddings for crop data")
         return embeddings
+
+    @st.cache_resource
+    def load_crop_data(_self):
+        with open('crop_data.json', 'r') as file:
+            data = json.load(file)
+        log_decision(f"Loaded crop data from crop_data.json")
+        return data
 
     def generate_context(self, key, details):
         context_lines = []
@@ -242,11 +250,10 @@ st.title("Educational Crop Growing Guide Generator")
 model_manager = ModelManager("google/flan-t5-base")
 embedding_manager = EmbeddingManager()
 template_manager = TemplateManager()
-crop_data = load_crop_data()
 
 # Load embeddings
 if "embeddings" not in st.session_state:
-    st.session_state.embeddings = embedding_manager.generate_and_cache_embeddings(embedding_manager.embedding_model, crop_data)
+    st.session_state.embeddings = embedding_manager.generate_and_cache_embeddings(embedding_manager.embedding_model, embedding_manager.crop_data)
 
 # Sidebar configuration
 st.sidebar.title("Configuration")
@@ -284,7 +291,7 @@ if st.button("Generate"):
         step_visualization(4, "Getting user input", "The user input is the question asked by the student. This question will be processed to find the most relevant context from the crop data.")
         step_visualization(5, "Finding relevant context and showing cosine similarity results", "We use cosine similarity to measure the similarity between the question and each entry in the crop data. This helps in retrieving the most relevant context for the given question.")
         
-        best_match_key, relevant_context, cosine_scores = embedding_manager.find_relevant_context(question, st.session_state.embeddings, crop_data)
+        best_match_key, relevant_context, cosine_scores = embedding_manager.find_relevant_context(question, st.session_state.embeddings, embedding_manager.crop_data)
         context = embedding_manager.generate_context("Crop", relevant_context)
 
         st.subheader("Detected Question Type")
