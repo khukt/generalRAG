@@ -10,6 +10,15 @@ import os
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
+import signal
+
+MAX_MEMORY_MB = 2700  # Maximum memory usage allowed in MB
+
+def check_memory_usage():
+    memory_usage = memory_usage()
+    if memory_usage > MAX_MEMORY_MB:
+        st.warning("Memory usage exceeded the maximum limit. Restarting the application to free up memory.")
+        os.kill(os.getpid(), signal.SIGUSR1)
 
 # Setup logger
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -287,6 +296,7 @@ log_question(question)
 
 if st.button("Generate"):
     if question:
+        check_memory_usage()  # Check memory usage before processing each request
         step_visualization(1, "Loading the model", "We load a pre-trained T5 model which is designed for text generation tasks. This model is capable of generating coherent and contextually appropriate text based on the given input.")
         step_visualization(2, "Loading the templates", "Templates provide a structured format for generating specific types of responses. They help in guiding the model to produce more relevant and context-specific outputs.")
         step_visualization(3, "Loading the crop data and constructing embeddings based on the model", "We use embeddings to convert textual data into numerical vectors. These vectors help in finding similarities between the question and the data. SentenceTransformers model 'all-MiniLM-L6-v2' is used for generating these embeddings.")
