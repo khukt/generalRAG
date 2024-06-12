@@ -14,9 +14,14 @@ import signal
 
 MAX_MEMORY_MB = 2700  # Maximum memory usage allowed in MB
 
+def get_memory_usage():
+    process = psutil.Process(os.getpid())
+    mem_info = process.memory_info()
+    return mem_info.rss / (1024 ** 2)  # Convert bytes to MB
+
 def check_memory_usage():
-    memory_usage = memory_usage()
-    if memory_usage > MAX_MEMORY_MB:
+    memory_used = get_memory_usage()
+    if memory_used > MAX_MEMORY_MB:
         st.warning("Memory usage exceeded the maximum limit. Restarting the application to free up memory.")
         os.kill(os.getpid(), signal.SIGUSR1)
 
