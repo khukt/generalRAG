@@ -65,14 +65,14 @@ def load_crop_data():
     log_decision(f"Loaded crop data from crop_data.json")
     return data
 
-
-@log_performance
-def generate_embeddings(embedding_model, data):
+# Cache embeddings generation
+@st.cache_data
+def generate_and_cache_embeddings(embedding_model, data):
     keys = list(data.keys())
     contexts = [generate_context(key, data[key]) for key in keys]
     context_embeddings = embedding_model.encode(contexts, convert_to_tensor=True)
-    embeddings = dict(zip(keys, context_embeddings))
-    log_decision("Generated embeddings for crop data")
+    embeddings = {key: embedding.cpu().numpy() for key, embedding in zip(keys, context_embeddings)}
+    log_decision("Generated and cached embeddings for crop data")
     return embeddings
 
 def generate_context(key, details):
@@ -88,7 +88,8 @@ def generate_context(key, details):
 @log_performance
 def find_relevant_context(question, embeddings, data):
     question_embedding = embedding_model.encode(question, convert_to_tensor=True)
-    cosine_scores = util.pytorch_cos_sim(question_embedding, torch.stack(list(embeddings.values())))
+    context_embeddings = [torch.tensor(embedding) for embedding in embeddings.values()]
+    cosine_scores = util.pytorch_cos_sim(question_embedding, torch.stack(context_embeddings))
     best_match_index = torch.argmax(cosine_scores).item()
     best_match_key = list(embeddings.keys())[best_match_index]
     return best_match_key, data[best_match_key], cosine_scores
@@ -293,11 +294,10 @@ crop_data = load_crop_data()
 
 # Using session state to manage the execution
 if "embeddings" not in st.session_state:
-    embeddings = generate_embeddings(embedding_model, crop_data)
+    embeddings = generate_and_cache_embeddings(embedding_model, crop_data)
     st.session_state.embeddings = embeddings
 else:
     embeddings = st.session_state.embeddings
-
 
 question = st.text_input("Question", value="How to grow tomatoes?", key="question", help="Enter your question about crop growing here.")
 log_question(question)
@@ -345,18 +345,20 @@ if question:
     st.subheader("Generated Guide")
     st.markdown(f"<div style='border: 1px solid #ccc; padding: 10px; border-radius: 5px;'>{guide}</div>", unsafe_allow_html=True)
 
-    # Normalize and highlight the input text
+    # Stop the app execution here
+    st.stop()
+
+    # The following code will not be executed after st.stop()
     if attentions is not None:
         normalized_attentions = normalize_attention_weights(attentions)
         highlighted_text = highlight_text(tokenizer, input_text, input_ids, normalized_attentions)
         st.subheader("Highlighted Input Text Based on Attention Weights")
         st.markdown(f"<div style='border: 1px solid #ccc; padding: 10px; border-radius: 5px;'>{highlighted_text}</div>", unsafe_allow_html=True)
 
-
     # Memory usage details
     total_memory_usage = memory_usage()
     other_memory_usage = total_memory_usage - memory_footprint
-    
+
     st.subheader("Memory Usage Details")
     st.markdown(
         f"""
@@ -377,7 +379,7 @@ if question:
             <li>Resident Set Size (RSS): {mem_info.rss / (1024 ** 2):.2f} MB</li>
             <li>Virtual Memory Size (VMS): {mem_info.vms / (1024 ** 2):.2f} MB</li>
             <li>Shared Memory: {mem_info.shared / (1024 ** 2):.2f} MB</li>
-            <li>Text (Code): {mem_info.text / (1024 ** 2):.2f} MB</li>
+            <li>Text (Code): {mem_info.text / (1024 ** 2)::.2f} MB</li>
             <li>Data + Stack: {mem_info.data / (1024 ** 2):.2f} MB</li>
             <li>Library (unused): {mem_info.lib / (1024 ** 2):.2f} MB</li>
         </ul>
