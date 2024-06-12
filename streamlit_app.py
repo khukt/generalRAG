@@ -201,17 +201,8 @@ class CropGuideGenerator:
                 output_attentions=True,
                 return_dict_in_generate=True
             )
-            encoder_outputs = model.get_encoder()(inputs)
-            decoder_input_ids = model._shift_right(inputs)
-            decoder_outputs = model.decoder(
-                input_ids=decoder_input_ids,
-                encoder_hidden_states=encoder_outputs.last_hidden_state,
-                encoder_attention_mask=inputs.ne(tokenizer.pad_token_id),
-                output_attentions=True,
-                return_dict=True
-            )
+            attention_weights = outputs.attentions[-1] if outputs.attentions else None
 
-            attentions = decoder_outputs.attentions
             memory_after = memory_usage()
             memory_footprint = memory_after - memory_before
             answer = tokenizer.decode(outputs.sequences[0], skip_special_tokens=True)
@@ -224,7 +215,7 @@ class CropGuideGenerator:
                 "memory_footprint": memory_footprint
             })
 
-            return format_output(answer), memory_footprint, attentions, input_text, inputs
+            return format_output(answer), memory_footprint, attention_weights, input_text, inputs
 
         except Exception as e:
             st.error(f"An error occurred during text generation: {e}")
@@ -316,7 +307,7 @@ if st.button("Generate"):
 
         if attentions is not None:
             normalized_attentions = normalize_attention_weights(attentions)
-            st.write(normalized_attentions)
+            st.write(normalized_attentions)  # Debugging: Display the attention weights
             highlighted_text = highlight_text(model_manager.tokenizer, input_text, input_ids, normalized_attentions)
             st.subheader("Highlighted Input Text Based on Attention Weights")
             st.markdown(f"<div style='border: 1px solid #ccc; padding: 10px; border-radius: 5px;'>{highlighted_text}</div>", unsafe_allow_html=True)
