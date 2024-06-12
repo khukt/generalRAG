@@ -302,11 +302,6 @@ log_question(question)
 if st.button("Generate"):
     if question:
         check_memory_usage()  # Check memory usage before processing each request
-        
-        # Profile the text generation code
-        profiler = cProfile.Profile()
-        profiler.enable()
-
         step_visualization(1, "Loading the model", "We load a pre-trained T5 model which is designed for text generation tasks. This model is capable of generating coherent and contextually appropriate text based on the given input.")
         step_visualization(2, "Loading the templates", "Templates provide a structured format for generating specific types of responses. They help in guiding the model to produce more relevant and context-specific outputs.")
         step_visualization(3, "Loading the crop data and constructing embeddings based on the model", "We use embeddings to convert textual data into numerical vectors. These vectors help in finding similarities between the question and the data. SentenceTransformers model 'all-MiniLM-L6-v2' is used for generating these embeddings.")
@@ -339,9 +334,6 @@ if st.button("Generate"):
             guide, memory_footprint, attentions, input_text, input_ids = crop_guide_generator.generate_text(
                 task_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping, use_template, question_type
             )
-        profiler.disable()
-        profiler.print_stats(sort='cumulative')
-        # End profiling
 
         step_visualization(7, "Generating the text", "The text generation model uses the context and the question to generate a detailed guide. Parameters like max_length, num_beams, and no_repeat_ngram_size help in controlling the quality and length of the generated text.")
         
