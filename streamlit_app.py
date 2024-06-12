@@ -75,7 +75,7 @@ def step_visualization(step_number, step_description, explanation):
 class ModelManager:
     def __init__(self, model_name):
         self.model_name = model_name
-        self.model, self.tokenizer = self.load_model()
+        self.model, self.tokenizer = self.load_model(model_name)
 
     @st.cache_resource
     def load_model(_self, model_name):
