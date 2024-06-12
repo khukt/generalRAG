@@ -74,7 +74,7 @@ def step_visualization(step_number, step_description, explanation):
 # Cache functions
 @st.cache_resource
 def load_model(model_name):
-    model = T5ForConditionalGeneration.from_pretrained(model_name, output_attentions=True)
+    model = T5ForConditionalGeneration.from_pretrained(model_name, output_attentions=True, return_dict=True)
     tokenizer = T5Tokenizer.from_pretrained(model_name, legacy=False)
     log_model_usage(model_name)
     return model, tokenizer
@@ -201,7 +201,17 @@ class CropGuideGenerator:
                 output_attentions=True,
                 return_dict_in_generate=True
             )
-            attention_weights = outputs.attentions[-1] if outputs.attentions else None
+            encoder_outputs = model.get_encoder()(inputs, output_attentions=True)
+            decoder_input_ids = model._shift_right(inputs)
+            decoder_outputs = model.decoder(
+                input_ids=decoder_input_ids,
+                encoder_hidden_states=encoder_outputs.last_hidden_state,
+                encoder_attention_mask=inputs.ne(tokenizer.pad_token_id),
+                output_attentions=True,
+                return_dict=True
+            )
+
+            attentions = decoder_outputs.attentions
 
             memory_after = memory_usage()
             memory_footprint = memory_after - memory_before
@@ -215,7 +225,7 @@ class CropGuideGenerator:
                 "memory_footprint": memory_footprint
             })
 
-            return format_output(answer), memory_footprint, attention_weights, input_text, inputs
+            return format_output(answer), memory_footprint, attentions, input_text, inputs
 
         except Exception as e:
             st.error(f"An error occurred during text generation: {e}")
