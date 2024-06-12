@@ -21,6 +21,7 @@ memory_usage_data = {"Initialization": 0}  # Initialize memory usage data with t
 def log_memory_usage(component_name, memory_usage):
     global memory_usage_data
     memory_usage_data[component_name] = memory_usage
+    st.write(memory_usage_data)
 
 def plot_memory_usage():
     components = list(memory_usage_data.keys())
