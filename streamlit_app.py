@@ -86,8 +86,8 @@ def generate_context(key, details):
     return '\n'.join(context_lines)
 
 @log_performance
-def find_relevant_context(question, embeddings, data):
-    question_embedding = embedding_model.encode(question, convert_to_tensor=True)
+def find_relevant_context(question, embeddings, data, _embedding_model):
+    question_embedding = _embedding_model.encode(question, convert_to_tensor=True)
     context_embeddings = [torch.tensor(embedding) for embedding in embeddings.values()]
     cosine_scores = util.pytorch_cos_sim(question_embedding, torch.stack(context_embeddings))
     best_match_index = torch.argmax(cosine_scores).item()
@@ -304,7 +304,7 @@ log_question(question)
 
 if question:
     if "context_data" not in st.session_state:
-        best_match_key, relevant_context, cosine_scores = find_relevant_context(question, embeddings, crop_data)
+        best_match_key, relevant_context, cosine_scores = find_relevant_context(question, embeddings, crop_data, embedding_model)
         context = generate_context("Crop", relevant_context)
         st.session_state.context_data = (best_match_key, relevant_context, cosine_scores, context)
     else:
@@ -379,7 +379,7 @@ if question:
             <li>Resident Set Size (RSS): {mem_info.rss / (1024 ** 2):.2f} MB</li>
             <li>Virtual Memory Size (VMS): {mem_info.vms / (1024 ** 2):.2f} MB</li>
             <li>Shared Memory: {mem_info.shared / (1024 ** 2):.2f} MB</li>
-            <li>Text (Code): {mem_info.text / (1024 ** 2)::.2f} MB</li>
+            <li>Text (Code): {mem_info.text / (1024 ** 2):.2f} MB</li>
             <li>Data + Stack: {mem_info.data / (1024 ** 2):.2f} MB</li>
             <li>Library (unused): {mem_info.lib / (1024 ** 2):.2f} MB</li>
         </ul>
