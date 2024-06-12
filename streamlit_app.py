@@ -353,7 +353,7 @@ if st.button("Generate"):
     try:
         while True:
             time.sleep(1)
-        except Exception as e:
-            st.error(f"An error occurred: {e}")
-            st.error(traceback.format_exc())  # Print traceback for detailed error information
-            logger.error("An error occurred:", exc_info=True)  # Log error with traceback
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
+        st.error(traceback.format_exc())  # Print traceback for detailed error information
+        logger.error("An error occurred:", exc_info=True)  # Log error with traceback
