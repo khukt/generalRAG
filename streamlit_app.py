@@ -13,6 +13,12 @@ import numpy as np
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+# Utility functions
+def memory_usage():
+    process = psutil.Process()
+    mem_info = process.memory_info()
+    return mem_info.rss / (1024 ** 2)  # Convert bytes to MB
+
 def log_decision(message):
     logger.info(message)
 
@@ -28,11 +34,6 @@ def log_performance(func):
         return result
     return wrapper
 
-def memory_usage():
-    process = psutil.Process()
-    mem_info = process.memory_info()
-    return mem_info.rss / (1024 ** 2)  # Convert bytes to MB
-
 def log_model_usage(model_name):
     logger.info(f"Model used: {model_name}")
 
@@ -42,66 +43,85 @@ def log_question(question):
 def log_generation_details(details):
     logger.info(f"Generation details: {details}")
 
-# Cache model loading
-@st.cache_resource
-def load_model(model_name):
-    model = T5ForConditionalGeneration.from_pretrained(model_name, output_attentions=True)
-    tokenizer = T5Tokenizer.from_pretrained(model_name, legacy=False)
-    log_model_usage(model_name)
-    return model, tokenizer
+def format_output(output):
+    sentences = output.split('. ')
+    formatted_output = '. '.join(sentence.capitalize() for sentence in sentences if sentence)
+    if not formatted_output.endswith('.'):
+        formatted_output += '.'
+    return formatted_output
 
-# Cache embedding model loading
-@st.cache_resource
-def load_embedding_model():
-    model = SentenceTransformer('all-MiniLM-L6-v2')
-    log_decision("Loaded embedding model 'all-MiniLM-L6-v2'")
-    return model
+def normalize_attention_weights(attentions):
+    last_layer_attentions = attentions[-1]  # Get the attentions from the last layer
+    avg_attentions = torch.mean(last_layer_attentions, dim=1)  # Average of attention weights across all heads
+    normalized_attentions = avg_attentions[0].cpu().detach().numpy() / avg_attentions[0].cpu().detach().numpy().max()
+    return normalized_attentions
 
-# Cache crop data loading
-@st.cache_resource
-def load_crop_data():
-    with open('crop_data.json', 'r') as file:
-        data = json.load(file)
-    log_decision(f"Loaded crop data from crop_data.json")
-    return data
+def highlight_text(tokenizer, input_text, input_ids, attention_weights):
+    tokens = tokenizer.convert_ids_to_tokens(input_ids[0])
+    highlighted_text = ""
+    for token, weight in zip(tokens, attention_weights):
+        token = token.replace('▁', '')  # Remove special character for readability
+        color = f"rgba(255, 0, 0, {weight[0]})"  # Red color with transparency based on attention weight
+        highlighted_text += f"<span style='background-color: {color}'>{token}</span> "
+    return highlighted_text
 
-# Cache embeddings generation
-@st.cache_data
-def generate_and_cache_embeddings(_embedding_model, data):
-    keys = list(data.keys())
-    contexts = [generate_context(key, data[key]) for key in keys]
-    context_embeddings = _embedding_model.encode(contexts, convert_to_tensor=True)
-    embeddings = {key: embedding.cpu().numpy() for key, embedding in zip(keys, context_embeddings)}
-    log_decision("Generated and cached embeddings for crop data")
-    return embeddings
+def step_visualization(step_number, step_description, explanation):
+    with st.spinner(f"Step {step_number}: {step_description}..."):
+        time.sleep(1)
+    st.success(f"Step {step_number}: {step_description} completed.")
+    st.info(explanation)
 
-def generate_context(key, details):
-    context_lines = []
-    for k, v in details.items():
-        if isinstance(v, list):
-            v = ', '.join(map(str, v))
-        elif isinstance(v, dict):
-            v = generate_context(k, v)  # Recursively handle nested dictionaries
-        context_lines.append(f"{k.replace('_', ' ').title()}: {v}")
-    return '\n'.join(context_lines)
+# Manager classes
+class ModelManager:
+    def __init__(self, model_name):
+        self.model_name = model_name
+        self.model, self.tokenizer = self.load_model()
 
-@log_performance
-def find_relevant_context(question, embeddings, data, _embedding_model):
-    question_embedding = _embedding_model.encode(question, convert_to_tensor=True)
-    context_embeddings = [torch.tensor(embedding) for embedding in embeddings.values()]
-    cosine_scores = util.pytorch_cos_sim(question_embedding, torch.stack(context_embeddings))
-    best_match_index = torch.argmax(cosine_scores).item()
-    best_match_key = list(embeddings.keys())[best_match_index]
-    return best_match_key, data[best_match_key], cosine_scores
+    @st.cache_resource
+    def load_model(self):
+        model = T5ForConditionalGeneration.from_pretrained(self.model_name, output_attentions=True)
+        tokenizer = T5Tokenizer.from_pretrained(self.model_name, legacy=False)
+        log_model_usage(self.model_name)
+        return model, tokenizer
 
-def determine_question_type(question, templates):
-    question = question.lower()
-    for question_type, details in templates.items():
-        if any(keyword in question for keyword in details.get("keywords", [])):
-            return question_type
-    return "Planting Guide"  # Default to planting guide if no keywords match
+class EmbeddingManager:
+    def __init__(self):
+        self.embedding_model = self.load_embedding_model()
+        self.embeddings = None
 
-# Template Manager
+    @st.cache_resource
+    def load_embedding_model(self):
+        model = SentenceTransformer('all-MiniLM-L6-v2')
+        log_decision("Loaded embedding model 'all-MiniLM-L6-v2'")
+        return model
+
+    @st.cache_data
+    def generate_and_cache_embeddings(self, data):
+        keys = list(data.keys())
+        contexts = [self.generate_context(key, data[key]) for key in keys]
+        context_embeddings = self.embedding_model.encode(contexts, convert_to_tensor=True)
+        embeddings = {key: embedding.cpu().numpy() for key, embedding in zip(keys, context_embeddings)}
+        log_decision("Generated and cached embeddings for crop data")
+        return embeddings
+
+    def generate_context(self, key, details):
+        context_lines = []
+        for k, v in details.items():
+            if isinstance(v, list):
+                v = ', '.join(map(str, v))
+            elif isinstance(v, dict):
+                v = self.generate_context(k, v)  # Recursively handle nested dictionaries
+            context_lines.append(f"{k.replace('_', ' ').title()}: {v}")
+        return '\n'.join(context_lines)
+
+    def find_relevant_context(self, question, embeddings, data):
+        question_embedding = self.embedding_model.encode(question, convert_to_tensor=True)
+        context_embeddings = [torch.tensor(embedding) for embedding in embeddings.values()]
+        cosine_scores = util.pytorch_cos_sim(question_embedding, torch.stack(context_embeddings))
+        best_match_index = torch.argmax(cosine_scores).item()
+        best_match_key = list(embeddings.keys())[best_match_index]
+        return best_match_key, data[best_match_key], cosine_scores
+
 class TemplateManager:
     def __init__(self, template_file='templates.json'):
         self.template_file = template_file
@@ -143,15 +163,68 @@ class TemplateManager:
         self.save_templates()
         log_decision(f"Updated template for {question_type}")
 
-@log_performance
-def generate_text(model, tokenizer, task_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping, use_template, templates, question_type):
-    try:
-        input_text = ""
-        if use_template:
-            input_text = templates[question_type]["template"].format(question=question, context=context)
-        else:
-            input_text = f"{context} {question}"
+    def determine_question_type(self, question):
+        question = question.lower()
+        for question_type, details in self.templates.items():
+            if any(keyword in question for keyword in details.get("keywords", [])):
+                return question_type
+        return "Planting Guide"  # Default to planting guide if no keywords match
 
+class CropGuideGenerator:
+    def __init__(self, model_manager, embedding_manager, template_manager):
+        self.model_manager = model_manager
+        self.embedding_manager = embedding_manager
+        self.template_manager = template_manager
+
+    @log_performance
+    def generate_text(self, task_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping, use_template, question_type):
+        try:
+            model, tokenizer = self.model_manager.model, self.model_manager.tokenizer
+            input_text = self.create_input_text(task_type, question, context, use_template, question_type)
+            inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
+            
+            memory_before = memory_usage()
+            outputs = model.generate(
+                inputs,
+                max_length=max_length,
+                num_beams=num_beams,
+                no_repeat_ngram_size=no_repeat_ngram_size,
+                early_stopping=early_stopping,
+                output_attentions=True,
+                return_dict_in_generate=True
+            )
+            encoder_outputs = model.get_encoder()(inputs)
+            decoder_input_ids = model._shift_right(inputs)
+            decoder_outputs = model.decoder(
+                input_ids=decoder_input_ids,
+                encoder_hidden_states=encoder_outputs.last_hidden_state,
+                encoder_attention_mask=inputs.ne(tokenizer.pad_token_id),
+                output_attentions=True,
+                return_dict=True
+            )
+
+            attentions = decoder_outputs.attentions
+            memory_after = memory_usage()
+            memory_footprint = memory_after - memory_before
+            answer = tokenizer.decode(outputs.sequences[0], skip_special_tokens=True)
+            
+            log_generation_details({
+                "task_type": task_type,
+                "question": question,
+                "context": context,
+                "generated_text": answer,
+                "memory_footprint": memory_footprint
+            })
+
+            return format_output(answer), memory_footprint, attentions, input_text, inputs
+
+        except Exception as e:
+            st.error(f"An error occurred during text generation: {e}")
+            return "", 0, None, None, None
+
+    def create_input_text(self, task_type, question, context, use_template, question_type):
+        templates = self.template_manager.get_templates()
+        input_text = templates[question_type]["template"].format(question=question, context=context) if use_template else f"{context} {question}"
         if task_type == "Paraphrasing":
             input_text = f"paraphrase: {input_text}"
         elif task_type == "Summarization":
@@ -160,149 +233,47 @@ def generate_text(model, tokenizer, task_type, question, context, max_length, nu
             input_text = f"question: {question} context: {context}"
         elif task_type == "NER":
             input_text = f"ner: {input_text}"
-
-        inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
-        
-        memory_before = memory_usage()
-
-        # Forward pass to get attentions
-        outputs = model.generate(
-            inputs,
-            max_length=max_length,
-            num_beams=num_beams,
-            no_repeat_ngram_size=no_repeat_ngram_size,
-            early_stopping=early_stopping,
-            output_attentions=True,
-            return_dict_in_generate=True
-        )
-
-        # Separate generation and attention fetching to ensure we capture attentions
-        encoder_outputs = model.get_encoder()(inputs)
-        decoder_input_ids = model._shift_right(inputs)
-        decoder_outputs = model.decoder(
-            input_ids=decoder_input_ids,
-            encoder_hidden_states=encoder_outputs.last_hidden_state,
-            encoder_attention_mask=inputs.ne(tokenizer.pad_token_id),
-            output_attentions=True,
-            return_dict=True
-        )
-
-        attentions = decoder_outputs.attentions
-
-        memory_after = memory_usage()
-        
-        memory_footprint = memory_after - memory_before
-        answer = tokenizer.decode(outputs.sequences[0], skip_special_tokens=True)
-        
-        log_generation_details({
-            "task_type": task_type,
-            "question": question,
-            "context": context,
-            "generated_text": answer,
-            "memory_footprint": memory_footprint
-        })
-
-        return format_output(answer), memory_footprint, attentions, input_text, inputs
-
-    except Exception as e:
-        st.error(f"An error occurred during text generation: {e}")
-        return "", 0, None, None, None
-
-def format_output(output):
-    sentences = output.split('. ')
-    formatted_output = '. '.join(sentence.capitalize() for sentence in sentences if sentence)
-    if not formatted_output.endswith('.'):
-        formatted_output += '.'
-    return formatted_output
-
-def normalize_attention_weights(attentions):
-    last_layer_attentions = attentions[-1]  # Get the attentions from the last layer
-    # Assuming we want the average of attention weights across all heads
-    avg_attentions = torch.mean(last_layer_attentions, dim=1)
-    # Normalize the attention weights to be between 0 and 1
-    normalized_attentions = avg_attentions[0].cpu().detach().numpy()
-    return normalized_attentions / normalized_attentions.max()
-
-def highlight_text(tokenizer, input_text, input_ids, attention_weights):
-    tokens = tokenizer.convert_ids_to_tokens(input_ids[0])
-    # Join subword tokens correctly and apply highlighting
-    highlighted_text = ""
-    for token, weight in zip(tokens, attention_weights):
-        token = token.replace('▁', '')  # Remove special character for readability
-        color = f"rgba(255, 0, 0, {weight[0]})"  # Red color with transparency based on attention weight
-        highlighted_text += f"<span style='background-color: {color}'>{token}</span> "
-    return highlighted_text
+        return input_text
 
 # Streamlit UI
 st.title("Educational Crop Growing Guide Generator")
 
-# Initialize managers and load models only once
-if "template_manager" not in st.session_state:
-    st.session_state.template_manager = TemplateManager()
+# Initialize managers
+model_manager = ModelManager("google/flan-t5-base")
+embedding_manager = EmbeddingManager()
+template_manager = TemplateManager()
+crop_data = load_crop_data()
 
-if "model" not in st.session_state:
-    model_name = "google/flan-t5-base"
-    st.session_state.model, st.session_state.tokenizer = load_model(model_name)
-
-if "embedding_model" not in st.session_state:
-    st.session_state.embedding_model = load_embedding_model()
-
-if "crop_data" not in st.session_state:
-    st.session_state.crop_data = load_crop_data()
-
+# Load embeddings
 if "embeddings" not in st.session_state:
-    st.session_state.embeddings = generate_and_cache_embeddings(st.session_state.embedding_model, st.session_state.crop_data)
+    st.session_state.embeddings = embedding_manager.generate_and_cache_embeddings(crop_data)
 
-# Sidebar for model selection and parameters
+# Sidebar configuration
 st.sidebar.title("Configuration")
-task_type = st.sidebar.selectbox(
-    "Select Task",
-    [
-        "Text Generation",
-        "Summarization",
-        "Question Answering",
-        "Paraphrasing",
-        "NER"
-    ]
-)
-
+task_type = st.sidebar.selectbox("Select Task", ["Text Generation", "Summarization", "Question Answering", "Paraphrasing", "NER"])
 use_template = st.sidebar.checkbox("Use Template", value=True)
-
-# Additional controls for model.generate parameters in the sidebar
 st.sidebar.title("Model Parameters")
 max_length = st.sidebar.slider("Max Length", 50, 500, 300)
 num_beams = st.sidebar.slider("Number of Beams", 1, 10, 5)
 no_repeat_ngram_size = st.sidebar.slider("No Repeat N-Gram Size", 1, 10, 2)
 early_stopping = st.sidebar.checkbox("Early Stopping", value=True)
-
-# Template configuration
 st.sidebar.title("Template Configuration")
-selected_question_type = st.sidebar.selectbox("Select Question Type", list(st.session_state.template_manager.get_templates().keys()))
-
-template_input = st.sidebar.text_area("Template", value=st.session_state.template_manager.get_templates()[selected_question_type]["template"])
-keywords_input = st.sidebar.text_area("Keywords (comma separated)", value=", ".join(st.session_state.template_manager.get_templates()[selected_question_type]["keywords"]))
+selected_question_type = st.sidebar.selectbox("Select Question Type", list(template_manager.get_templates().keys()))
+template_input = st.sidebar.text_area("Template", value=template_manager.get_templates()[selected_question_type]["template"])
+keywords_input = st.sidebar.text_area("Keywords (comma separated)", value=", ".join(template_manager.get_templates()[selected_question_type]["keywords"]))
 if st.sidebar.button("Save Template"):
-    st.session_state.template_manager.update_template(selected_question_type, template_input, keywords_input)
+    template_manager.update_template(selected_question_type, template_input, keywords_input)
     st.sidebar.success("Template saved successfully!")
-
-# Buttons to clear cache and reload models, embeddings, and templates
 st.sidebar.title("Cache Management")
 if st.sidebar.button("Clear Cache and Reload Data"):
     st.experimental_rerun()
-
 if st.sidebar.button("Clear Cache and Reload Templates"):
-    st.session_state.template_manager.load_templates()
+    template_manager.load_templates()
     st.experimental_rerun()
 
 # Main input and processing section
 question = st.text_input("Question", value="How to grow tomatoes?", key="question", help="Enter your question about crop growing here.")
 log_question(question)
-
-def step_visualization(step_number, step_description, explanation):
-    with st.spinner(f"Step {step_number}: {step_description}..."):
-        time.sleep(1)
-    st.success(f"Step {step_number}: {step_description} completed.")
-    st.info(explanation)
 
 if st.button("Generate"):
     if question:
@@ -313,11 +284,11 @@ if st.button("Generate"):
         step_visualization(4, "Getting user input", "The user input is the question asked by the student. This question will be processed to find the most relevant context from the crop data.")
         step_visualization(5, "Finding relevant context and showing cosine similarity results", "We use cosine similarity to measure the similarity between the question and each entry in the crop data. This helps in retrieving the most relevant context for the given question.")
         
-        best_match_key, relevant_context, cosine_scores = find_relevant_context(question, st.session_state.embeddings, st.session_state.crop_data, st.session_state.embedding_model)
-        context = generate_context("Crop", relevant_context)
+        best_match_key, relevant_context, cosine_scores = embedding_manager.find_relevant_context(question, st.session_state.embeddings, crop_data)
+        context = embedding_manager.generate_context("Crop", relevant_context)
 
         st.subheader("Detected Question Type")
-        question_type = determine_question_type(question, st.session_state.template_manager.get_templates())
+        question_type = template_manager.determine_question_type(question)
         st.write(f"**{question_type}**")
 
         st.subheader("Context")
@@ -325,8 +296,11 @@ if st.button("Generate"):
 
         step_visualization(6, "Determining question type", "Based on the keywords in the question, we determine the type of question (e.g., planting guide, common issues). This helps in selecting the appropriate template for generating the response.")
         
+        crop_guide_generator = CropGuideGenerator(model_manager, embedding_manager, template_manager)
         with st.spinner("Generating..."):
-            guide, memory_footprint, attentions, input_text, input_ids = generate_text(st.session_state.model, st.session_state.tokenizer, task_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping, use_template, st.session_state.template_manager.get_templates(), question_type)
+            guide, memory_footprint, attentions, input_text, input_ids = crop_guide_generator.generate_text(
+                task_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping, use_template, question_type
+            )
 
         step_visualization(7, "Generating the text", "The text generation model uses the context and the question to generate a detailed guide. Parameters like max_length, num_beams, and no_repeat_ngram_size help in controlling the quality and length of the generated text.")
         
@@ -335,44 +309,5 @@ if st.button("Generate"):
 
         step_visualization(8, "Displaying the output", "The final output is displayed to the user. This output is the detailed guide generated by the model based on the user's question and the retrieved context.")
 
-
-        if attentions is not None:
-            normalized_attentions = normalize_attention_weights(attentions)
-            highlighted_text = highlight_text(st.session_state.tokenizer, input_text, input_ids, normalized_attentions)
-            st.subheader("Highlighted Input Text Based on Attention Weights")
-            st.markdown(f"<div style='border: 1px solid #ccc; padding: 10px; border-radius: 5px;'>{highlighted_text}</div>", unsafe_allow_html=True)
-
-        # Memory usage details
-        total_memory_usage = memory_usage()
-        other_memory_usage = total_memory_usage - memory_footprint
-
-        st.subheader("Memory Usage Details")
-        st.markdown(
-            f"""
-            <ul style='color:gray; font-size: small;'>
-                <li>Memory used during generation: {memory_footprint:.2f} MB</li>
-                <li>Other memory usage: {other_memory_usage:.2f} MB</li>
-                <li>Total memory usage: {total_memory_usage:.2f} MB</li>
-            </ul>
-            """, unsafe_allow_html=True
-        )
-
-        # Detailed memory breakdown
-        process = psutil.Process(os.getpid())
-        mem_info = process.memory_info()
-        st.markdown(
-            f"""
-            <ul style='color:gray; font-size: small;'>
-                <li>Resident Set Size (RSS): {mem_info.rss / (1024 ** 2):.2f} MB</li>
-                <li>Virtual Memory Size (VMS): {mem_info.vms / (1024 ** 2):.2f} MB</li>
-                <li>Shared Memory: {mem_info.shared / (1024 ** 2):.2f} MB</li>
-                <li>Text (Code): {mem_info.text / (1024 ** 2):.2f} MB</li>
-                <li>Data + Stack: {mem_info.data / (1024 ** 2):.2f} MB</li>
-                <li>Library (unused): {mem_info.lib / (1024 ** 2):.2f} MB</li>
-            </ul>
-            """, unsafe_allow_html=True
-        )
         # Stop the app execution here
         st.stop()
-
-        # The following code will not be executed after st.stop()
