@@ -66,6 +66,7 @@ def load_crop_data():
     return data
 
 @log_performance
+@st.cache_resource
 def generate_embeddings(embedding_model, data):
     keys = list(data.keys())
     contexts = [generate_context(key, data[key]) for key in keys]
