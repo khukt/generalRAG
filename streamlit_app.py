@@ -12,7 +12,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import signal
 
-MAX_MEMORY_MB = 2500  # Maximum memory usage allowed in MB
+MAX_MEMORY_MB = 2600  # Maximum memory usage allowed in MB
 
 def get_memory_usage():
     process = psutil.Process(os.getpid())
