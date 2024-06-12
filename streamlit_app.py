@@ -218,16 +218,18 @@ def normalize_attention_weights(attentions):
     # Assuming we want the average of attention weights across all heads
     avg_attentions = torch.mean(last_layer_attentions, dim=1)
     # Normalize the attention weights to be between 0 and 1
-    normalized_attentions = avg_attentions / avg_attentions.max()
-    return normalized_attentions[0].cpu().detach().numpy()
+    normalized_attentions = avg_attentions[0].cpu().detach().numpy()
+    return normalized_attentions / normalized_attentions.max()
 
-def highlight_text(tokenizer, input_text, input_ids, attention_weights):
+def highlight_text(tokenizer, input_ids, attention_weights):
     tokens = tokenizer.convert_ids_to_tokens(input_ids[0])
+    # Flatten attention weights if necessary and ensure correct length
+    if attention_weights.ndim > 1:
+        attention_weights = attention_weights.flatten()
     assert len(tokens) == len(attention_weights), "Mismatch between tokens and attention weights length"
     highlighted_text = ""
     for token, weight in zip(tokens, attention_weights):
-        if token.startswith('▁'):
-            token = token[1:]
+        token = token.replace('▁', '')  # Remove special character for readability
         color = f"rgba(255, 0, 0, {weight[0]})"  # Red color with transparency based on attention weight
         highlighted_text += f"<span style='background-color: {color}'>{token}</span> "
     return highlighted_text
@@ -290,18 +292,28 @@ model_name = "google/flan-t5-base"
 model, tokenizer = load_model(model_name)
 embedding_model = load_embedding_model()
 crop_data = load_crop_data()
-embeddings = generate_embeddings(embedding_model, crop_data)
+
+# Using session state to manage the execution
+if "embeddings" not in st.session_state:
+    embeddings = generate_embeddings(embedding_model, crop_data)
+    st.session_state.embeddings = embeddings
+else:
+    embeddings = st.session_state.embeddings
 
 question = st.text_input("Question", value="How to grow tomatoes?", key="question", help="Enter your question about crop growing here.")
 log_question(question)
 
 if question:
+    if "context_data" not in st.session_state:
+        best_match_key, relevant_context, cosine_scores = find_relevant_context(question, embeddings, crop_data)
+        context = generate_context("Crop", relevant_context)
+        st.session_state.context_data = (best_match_key, relevant_context, cosine_scores, context)
+    else:
+        best_match_key, relevant_context, cosine_scores, context = st.session_state.context_data
+
     step_visualization(1, "Loading the model", "We load a pre-trained T5 model which is designed for text generation tasks. This model is capable of generating coherent and contextually appropriate text based on the given input.")
     step_visualization(2, "Loading the templates", "Templates provide a structured format for generating specific types of responses. They help in guiding the model to produce more relevant and context-specific outputs.")
     step_visualization(3, "Loading the crop data and constructing embeddings based on the model", "We use embeddings to convert textual data into numerical vectors. These vectors help in finding similarities between the question and the data. SentenceTransformers model 'all-MiniLM-L6-v2' is used for generating these embeddings.")
-    
-    best_match_key, relevant_context, cosine_scores = find_relevant_context(question, embeddings, crop_data)
-    context = generate_context("Crop", relevant_context)
     
     step_visualization(4, "Getting user input", "The user input is the question asked by the student. This question will be processed to find the most relevant context from the crop data.")
     step_visualization(5, "Finding relevant context and showing cosine similarity results", "We use cosine similarity to measure the similarity between the question and each entry in the crop data. This helps in retrieving the most relevant context for the given question.")
@@ -322,8 +334,12 @@ if question:
 
     step_visualization(7, "Generating the text", "The text generation model uses the context and the question to generate a detailed guide. Parameters like max_length, num_beams, and no_repeat_ngram_size help in controlling the quality and length of the generated text.")
     
-    with st.spinner("Generating..."):
-        guide, memory_footprint, attentions, input_text, input_ids = generate_text(model, tokenizer, task_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping, use_template, template_manager.get_templates(), question_type)
+    if "generated_guide" not in st.session_state:
+        with st.spinner("Generating..."):
+            guide, memory_footprint, attentions, input_text, input_ids = generate_text(model, tokenizer, task_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping, use_template, template_manager.get_templates(), question_type)
+            st.session_state.generated_guide = (guide, memory_footprint, attentions, input_text, input_ids)
+    else:
+        guide, memory_footprint, attentions, input_text, input_ids = st.session_state.generated_guide
     
     step_visualization(8, "Displaying the output", "The final output is displayed to the user. This output is the detailed guide generated by the model based on the user's question and the retrieved context.")
     
@@ -333,7 +349,7 @@ if question:
     # Normalize and highlight the input text
     if attentions is not None:
         normalized_attentions = normalize_attention_weights(attentions)
-        highlighted_text = highlight_text(tokenizer, input_text, input_ids, normalized_attentions)
+        highlighted_text = highlight_text(tokenizer, input_ids, normalized_attentions)
         st.subheader("Highlighted Input Text Based on Attention Weights")
         st.markdown(f"<div style='border: 1px solid #ccc; padding: 10px; border-radius: 5px;'>{highlighted_text}</div>", unsafe_allow_html=True)
 
