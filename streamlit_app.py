@@ -290,6 +290,7 @@ model_name = "google/flan-t5-base"
 model, tokenizer = load_model(model_name)
 embedding_model = load_embedding_model()
 crop_data = load_crop_data()
+
 @st.cache_resource
 embeddings = generate_embeddings(embedding_model, crop_data)
 
