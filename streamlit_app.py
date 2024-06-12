@@ -284,6 +284,7 @@ class CropGuideGenerator:
 
 # Streamlit UI
 st.title("Educational Crop Growing Guide Generator")
+
 log_memory_usage("Initialization", get_memory_usage())
 
 # Initialize managers
