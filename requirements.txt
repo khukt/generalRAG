@@ -7,3 +7,4 @@ psutil
 sentencepiece
 matplotlib
 requests
+seaborn
