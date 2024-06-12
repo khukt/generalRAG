@@ -290,8 +290,13 @@ model_name = "google/flan-t5-base"
 model, tokenizer = load_model(model_name)
 embedding_model = load_embedding_model()
 crop_data = load_crop_data()
-@st.cache_resource
-embeddings = generate_embeddings(embedding_model, crop_data)
+
+# Using session state to manage the execution
+if "embeddings" not in st.session_state:
+    embeddings = generate_embeddings(embedding_model, crop_data)
+    st.session_state.embeddings = embeddings
+else:
+    embeddings = st.session_state.embeddings
 
 
 question = st.text_input("Question", value="How to grow tomatoes?", key="question", help="Enter your question about crop growing here.")
