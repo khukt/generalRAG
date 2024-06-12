@@ -298,6 +298,12 @@ if st.sidebar.button("Clear Cache and Reload Templates"):
 question = st.text_input("Question", value="How to grow tomatoes?", key="question", help="Enter your question about crop growing here.")
 log_question(question)
 
+def step_visualization(step_number, step_description, explanation):
+    with st.spinner(f"Step {step_number}: {step_description}..."):
+        time.sleep(1)
+    st.success(f"Step {step_number}: {step_description} completed.")
+    st.info(explanation)
+
 if st.button("Generate"):
     if question:
         step_visualization(1, "Loading the model", "We load a pre-trained T5 model which is designed for text generation tasks. This model is capable of generating coherent and contextually appropriate text based on the given input.")
