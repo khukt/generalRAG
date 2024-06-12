@@ -316,6 +316,7 @@ if st.button("Generate"):
 
         if attentions is not None:
             normalized_attentions = normalize_attention_weights(attentions)
+            st.write(normalized_attentions)
             highlighted_text = highlight_text(model_manager.tokenizer, input_text, input_ids, normalized_attentions)
             st.subheader("Highlighted Input Text Based on Attention Weights")
             st.markdown(f"<div style='border: 1px solid #ccc; padding: 10px; border-radius: 5px;'>{highlighted_text}</div>", unsafe_allow_html=True)
