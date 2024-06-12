@@ -24,6 +24,7 @@ def log_memory_usage(component_name, memory_usage):
 
 def plot_memory_usage():
     components = list(memory_usage_data.keys())
+    st.write(components)
     memory_values = list(memory_usage_data.values())
     y_pos = np.arange(len(components))
 
