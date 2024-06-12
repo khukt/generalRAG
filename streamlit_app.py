@@ -97,6 +97,7 @@ def load_crop_data():
     return data
 
 @log_performance
+@st.cache_data
 def generate_embeddings(embedding_model, data):
     keys = list(data.keys())
     contexts = [generate_context(key, data[key]) for key in keys]
@@ -366,7 +367,7 @@ if question:
         f"""
         <ul style='color:gray; font-size: small;'>
             <li>Resident Set Size (RSS): {mem_info.rss / (1024 ** 2):.2f} MB</li>
-            <li>Virtual Memory Size (VMS): {mem_info.vms / (1024 ** 2)::.2f} MB</li>
+            <li>Virtual Memory Size (VMS): {mem_info.vms / (1024 ** 2):.2f} MB</li>
             <li>Shared Memory: {mem_info.shared / (1024 ** 2):.2f} MB</li>
             <li>Text (Code): {mem_info.text / (1024 ** 2):.2f} MB</li>
             <li>Data + Stack: {mem_info.data / (1024 ** 2):.2f} MB</li>
