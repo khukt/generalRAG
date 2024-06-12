@@ -12,12 +12,6 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 
-# Define resource constraints
-st.set_option('server.cpuLimit', 0.078)
-st.set_option('server.cpuCheckDuration', 10)
-st.set_option('server.memory', 690)
-st.set_option('server.maxUploadSize', 50)
-
 # Setup logger
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
