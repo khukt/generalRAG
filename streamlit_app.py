@@ -302,6 +302,12 @@ if st.button("Generate"):
         st.subheader("Context")
         st.markdown(f"```{context}```")
 
+        # Display cosine similarity scores
+        st.subheader("Cosine Similarity Scores")
+        st.write("Cosine similarity scores between the question and each entry in the crop data:")
+        for i, (key, score) in enumerate(zip(embedding_manager.crop_data.keys(), cosine_scores.squeeze())):
+            st.write(f"{i + 1}. {key}: {score:.4f}")
+
         step_visualization(6, "Determining question type", "Based on the keywords in the question, we determine the type of question (e.g., planting guide, common issues). This helps in selecting the appropriate template for generating the response.")
         
         crop_guide_generator = CropGuideGenerator(model_manager, embedding_manager, template_manager)
