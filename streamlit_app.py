@@ -331,9 +331,12 @@ if st.button("Generate"):
             st.subheader("Highlighted Input Text Based on Attention Weights")
             st.markdown(f"<div style='border: 1px solid #ccc; padding: 10px; border-radius: 5px;'>{highlighted_text}</div>", unsafe_allow_html=True)
 
+ 
             # Visualization of Attention Weights
             fig, ax = plt.subplots()
-            sns.heatmap(np.expand_dims(normalized_attentions, axis=0), cmap="YlGnBu", ax=ax)
+            if normalized_attentions.ndim == 3:
+                normalized_attentions = normalized_attentions[0]  # Remove the extra dimension
+            sns.heatmap(normalized_attentions, cmap="YlGnBu", ax=ax)
             ax.set_title('Attention Weights Heatmap')
             st.pyplot(fig)
 
