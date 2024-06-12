@@ -67,10 +67,10 @@ def load_crop_data():
 
 # Cache embeddings generation
 @st.cache_data
-def generate_and_cache_embeddings(embedding_model, data):
+def generate_and_cache_embeddings(_embedding_model, data):
     keys = list(data.keys())
     contexts = [generate_context(key, data[key]) for key in keys]
-    context_embeddings = embedding_model.encode(contexts, convert_to_tensor=True)
+    context_embeddings = _embedding_model.encode(contexts, convert_to_tensor=True)
     embeddings = {key: embedding.cpu().numpy() for key, embedding in zip(keys, context_embeddings)}
     log_decision("Generated and cached embeddings for crop data")
     return embeddings
