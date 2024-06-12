@@ -236,14 +236,22 @@ def highlight_text(tokenizer, input_text, input_ids, attention_weights):
 # Streamlit UI
 st.title("Educational Crop Growing Guide Generator")
 
-def step_visualization(step_number, step_description, explanation):
-    with st.spinner(f"Step {step_number}: {step_description}..."):
-        time.sleep(1)
-    st.success(f"Step {step_number}: {step_description} completed.")
-    st.info(explanation)
+# Initialize managers and load models only once
+if "template_manager" not in st.session_state:
+    st.session_state.template_manager = TemplateManager()
 
-# Initialize managers
-template_manager = TemplateManager()
+if "model" not in st.session_state:
+    model_name = "google/flan-t5-base"
+    st.session_state.model, st.session_state.tokenizer = load_model(model_name)
+
+if "embedding_model" not in st.session_state:
+    st.session_state.embedding_model = load_embedding_model()
+
+if "crop_data" not in st.session_state:
+    st.session_state.crop_data = load_crop_data()
+
+if "embeddings" not in st.session_state:
+    st.session_state.embeddings = generate_and_cache_embeddings(st.session_state.embedding_model, st.session_state.crop_data)
 
 # Sidebar for model selection and parameters
 st.sidebar.title("Configuration")
@@ -269,12 +277,12 @@ early_stopping = st.sidebar.checkbox("Early Stopping", value=True)
 
 # Template configuration
 st.sidebar.title("Template Configuration")
-selected_question_type = st.sidebar.selectbox("Select Question Type", list(template_manager.get_templates().keys()))
+selected_question_type = st.sidebar.selectbox("Select Question Type", list(st.session_state.template_manager.get_templates().keys()))
 
-template_input = st.sidebar.text_area("Template", value=template_manager.get_templates()[selected_question_type]["template"])
-keywords_input = st.sidebar.text_area("Keywords (comma separated)", value=", ".join(template_manager.get_templates()[selected_question_type]["keywords"]))
+template_input = st.sidebar.text_area("Template", value=st.session_state.template_manager.get_templates()[selected_question_type]["template"])
+keywords_input = st.sidebar.text_area("Keywords (comma separated)", value=", ".join(st.session_state.template_manager.get_templates()[selected_question_type]["keywords"]))
 if st.sidebar.button("Save Template"):
-    template_manager.update_template(selected_question_type, template_input, keywords_input)
+    st.session_state.template_manager.update_template(selected_question_type, template_input, keywords_input)
     st.sidebar.success("Template saved successfully!")
 
 # Buttons to clear cache and reload models, embeddings, and templates
@@ -283,77 +291,35 @@ if st.sidebar.button("Clear Cache and Reload Data"):
     st.experimental_rerun()
 
 if st.sidebar.button("Clear Cache and Reload Templates"):
-    template_manager.load_templates()
+    st.session_state.template_manager.load_templates()
     st.experimental_rerun()
 
 # Main input and processing section
-model_name = "google/flan-t5-base"
-model, tokenizer = load_model(model_name)
-embedding_model = load_embedding_model()
-crop_data = load_crop_data()
-
-# Using session state to manage the execution
-if "embeddings" not in st.session_state:
-    embeddings = generate_and_cache_embeddings(embedding_model, crop_data)
-    st.session_state.embeddings = embeddings
-else:
-    embeddings = st.session_state.embeddings
-
 question = st.text_input("Question", value="How to grow tomatoes?", key="question", help="Enter your question about crop growing here.")
 log_question(question)
 
 if question:
-    if "context_data" not in st.session_state:
-        best_match_key, relevant_context, cosine_scores = find_relevant_context(question, embeddings, crop_data, embedding_model)
-        context = generate_context("Crop", relevant_context)
-        st.session_state.context_data = (best_match_key, relevant_context, cosine_scores, context)
-    else:
-        best_match_key, relevant_context, cosine_scores, context = st.session_state.context_data
+    best_match_key, relevant_context, cosine_scores = find_relevant_context(question, st.session_state.embeddings, st.session_state.crop_data, st.session_state.embedding_model)
+    context = generate_context("Crop", relevant_context)
 
-    step_visualization(1, "Loading the model", "We load a pre-trained T5 model which is designed for text generation tasks. This model is capable of generating coherent and contextually appropriate text based on the given input.")
-    step_visualization(2, "Loading the templates", "Templates provide a structured format for generating specific types of responses. They help in guiding the model to produce more relevant and context-specific outputs.")
-    step_visualization(3, "Loading the crop data and constructing embeddings based on the model", "We use embeddings to convert textual data into numerical vectors. These vectors help in finding similarities between the question and the data. SentenceTransformers model 'all-MiniLM-L6-v2' is used for generating these embeddings.")
-    
-    step_visualization(4, "Getting user input", "The user input is the question asked by the student. This question will be processed to find the most relevant context from the crop data.")
-    step_visualization(5, "Finding relevant context and showing cosine similarity results", "We use cosine similarity to measure the similarity between the question and each entry in the crop data. This helps in retrieving the most relevant context for the given question.")
-    
-    # Display cosine similarity results
-    st.write("Cosine similarity results:")
-    for key, score in zip(embeddings.keys(), cosine_scores[0]):
-        st.write(f"{key}: {score.item():.2f}")
-    
-    question_type = determine_question_type(question, template_manager.get_templates())
-    step_visualization(6, "Determining question type", "Based on the keywords in the question, we determine the type of question (e.g., planting guide, common issues). This helps in selecting the appropriate template for generating the response.")
-    
     st.subheader("Detected Question Type")
+    question_type = determine_question_type(question, st.session_state.template_manager.get_templates())
     st.write(f"**{question_type}**")
 
     st.subheader("Context")
     st.markdown(f"```{context}```")
 
-    step_visualization(7, "Generating the text", "The text generation model uses the context and the question to generate a detailed guide. Parameters like max_length, num_beams, and no_repeat_ngram_size help in controlling the quality and length of the generated text.")
-    
-    if "generated_guide" not in st.session_state:
-        with st.spinner("Generating..."):
-            guide, memory_footprint, attentions, input_text, input_ids = generate_text(model, tokenizer, task_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping, use_template, template_manager.get_templates(), question_type)
-            st.session_state.generated_guide = (guide, memory_footprint, attentions, input_text, input_ids)
-    else:
-        guide, memory_footprint, attentions, input_text, input_ids = st.session_state.generated_guide
-    
-    step_visualization(8, "Displaying the output", "The final output is displayed to the user. This output is the detailed guide generated by the model based on the user's question and the retrieved context.")
-    
+    with st.spinner("Generating..."):
+        guide, memory_footprint, attentions, input_text, input_ids = generate_text(st.session_state.model, st.session_state.tokenizer, task_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping, use_template, st.session_state.template_manager.get_templates(), question_type)
+
     st.subheader("Generated Guide")
     st.markdown(f"<div style='border: 1px solid #ccc; padding: 10px; border-radius: 5px;'>{guide}</div>", unsafe_allow_html=True)
-    
+
     if attentions is not None:
         normalized_attentions = normalize_attention_weights(attentions)
-        highlighted_text = highlight_text(tokenizer, input_text, input_ids, normalized_attentions)
+        highlighted_text = highlight_text(st.session_state.tokenizer, input_text, input_ids, normalized_attentions)
         st.subheader("Highlighted Input Text Based on Attention Weights")
-        st.markdown(f"<div style='border: 1px solid #ccc; padding: 10px; border-radius: 5px;'>{highlighted_text}</div>", unsafe_allow_html=True)
-    # Stop the app execution here
-    st.stop()
-
-    # The following code will not be executed after st.stop()
+        st.markdown(f"<div style='border: 1px solid #ccc; padding: 10px; border-radius: 5px;'>{highlighted_text}</div>", unsafe_allow_html=True)    
 
     # Memory usage details
     total_memory_usage = memory_usage()
@@ -385,3 +351,10 @@ if question:
         </ul>
         """, unsafe_allow_html=True
     )
+
+    # Stop the app execution here
+    st.stop()
+
+    # The following code will not be executed after st.stop()
+
+
