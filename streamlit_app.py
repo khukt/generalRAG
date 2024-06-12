@@ -73,49 +73,49 @@ def step_visualization(step_number, step_description, explanation):
 
 # Manager classes
 class ModelManager:
-    def __init__(self, model_name):
-        self.model_name = model_name
-        self.model, self.tokenizer = self.load_model()
+    def __init__(_sefl, model_name):
+        _sefl.model_name = model_name
+        _sefl.model, _sefl.tokenizer = _sefl.load_model()
 
     @st.cache_resource
-    def load_model(self):
-        model = T5ForConditionalGeneration.from_pretrained(self.model_name, output_attentions=True)
-        tokenizer = T5Tokenizer.from_pretrained(self.model_name, legacy=False)
-        log_model_usage(self.model_name)
+    def load_model(_sefl):
+        model = T5ForConditionalGeneration.from_pretrained(_sefl.model_name, output_attentions=True)
+        tokenizer = T5Tokenizer.from_pretrained(_sefl.model_name, legacy=False)
+        log_model_usage(_sefl.model_name)
         return model, tokenizer
 
 class EmbeddingManager:
-    def __init__(self):
-        self.embedding_model = self.load_embedding_model()
-        self.embeddings = None
+    def __init__(_sefl):
+        _sefl.embedding_model = _sefl.load_embedding_model()
+        _sefl.embeddings = None
 
     @st.cache_resource
-    def load_embedding_model(self):
+    def load_embedding_model(_sefl):
         model = SentenceTransformer('all-MiniLM-L6-v2')
         log_decision("Loaded embedding model 'all-MiniLM-L6-v2'")
         return model
 
     @st.cache_data
-    def generate_and_cache_embeddings(self, data):
+    def generate_and_cache_embeddings(_sefl, data):
         keys = list(data.keys())
-        contexts = [self.generate_context(key, data[key]) for key in keys]
-        context_embeddings = self.embedding_model.encode(contexts, convert_to_tensor=True)
+        contexts = [_sefl.generate_context(key, data[key]) for key in keys]
+        context_embeddings = _sefl.embedding_model.encode(contexts, convert_to_tensor=True)
         embeddings = {key: embedding.cpu().numpy() for key, embedding in zip(keys, context_embeddings)}
         log_decision("Generated and cached embeddings for crop data")
         return embeddings
 
-    def generate_context(self, key, details):
+    def generate_context(_sefl, key, details):
         context_lines = []
         for k, v in details.items():
             if isinstance(v, list):
                 v = ', '.join(map(str, v))
             elif isinstance(v, dict):
-                v = self.generate_context(k, v)  # Recursively handle nested dictionaries
+                v = _sefl.generate_context(k, v)  # Recursively handle nested dictionaries
             context_lines.append(f"{k.replace('_', ' ').title()}: {v}")
         return '\n'.join(context_lines)
 
-    def find_relevant_context(self, question, embeddings, data):
-        question_embedding = self.embedding_model.encode(question, convert_to_tensor=True)
+    def find_relevant_context(_sefl, question, embeddings, data):
+        question_embedding = _sefl.embedding_model.encode(question, convert_to_tensor=True)
         context_embeddings = [torch.tensor(embedding) for embedding in embeddings.values()]
         cosine_scores = util.pytorch_cos_sim(question_embedding, torch.stack(context_embeddings))
         best_match_index = torch.argmax(cosine_scores).item()
@@ -123,24 +123,24 @@ class EmbeddingManager:
         return best_match_key, data[best_match_key], cosine_scores
 
 class TemplateManager:
-    def __init__(self, template_file='templates.json'):
-        self.template_file = template_file
-        self.templates = self.load_templates()
+    def __init__(_sefl, template_file='templates.json'):
+        _sefl.template_file = template_file
+        _sefl.templates = _sefl.load_templates()
 
     @log_performance
-    def load_templates(self):
-        if os.path.exists(self.template_file):
-            with open(self.template_file, 'r') as file:
+    def load_templates(_sefl):
+        if os.path.exists(_sefl.template_file):
+            with open(_sefl.template_file, 'r') as file:
                 return json.load(file)
         else:
-            return self.default_templates()
+            return _sefl.default_templates()
 
-    def save_templates(self):
-        with open(self.template_file, 'w') as file:
-            json.dump(self.templates, file, indent=4)
-        log_decision(f"Saved templates to {self.template_file}")
+    def save_templates(_sefl):
+        with open(_sefl.template_file, 'w') as file:
+            json.dump(_sefl.templates, file, indent=4)
+        log_decision(f"Saved templates to {_sefl.template_file}")
 
-    def default_templates(self):
+    def default_templates(_sefl):
         return {
             "Planting Guide": {
                 "template": (
@@ -154,33 +154,33 @@ class TemplateManager:
             # Additional templates as in original code
         }
 
-    def get_templates(self):
-        return self.templates
+    def get_templates(_sefl):
+        return _sefl.templates
 
-    def update_template(self, question_type, template, keywords):
-        self.templates[question_type]["template"] = template
-        self.templates[question_type]["keywords"] = [keyword.strip() for keyword in keywords.split(',')]
-        self.save_templates()
+    def update_template(_sefl, question_type, template, keywords):
+        _sefl.templates[question_type]["template"] = template
+        _sefl.templates[question_type]["keywords"] = [keyword.strip() for keyword in keywords.split(',')]
+        _sefl.save_templates()
         log_decision(f"Updated template for {question_type}")
 
-    def determine_question_type(self, question):
+    def determine_question_type(_sefl, question):
         question = question.lower()
-        for question_type, details in self.templates.items():
+        for question_type, details in _sefl.templates.items():
             if any(keyword in question for keyword in details.get("keywords", [])):
                 return question_type
         return "Planting Guide"  # Default to planting guide if no keywords match
 
 class CropGuideGenerator:
-    def __init__(self, model_manager, embedding_manager, template_manager):
-        self.model_manager = model_manager
-        self.embedding_manager = embedding_manager
-        self.template_manager = template_manager
+    def __init__(_sefl, model_manager, embedding_manager, template_manager):
+        _sefl.model_manager = model_manager
+        _sefl.embedding_manager = embedding_manager
+        _sefl.template_manager = template_manager
 
     @log_performance
-    def generate_text(self, task_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping, use_template, question_type):
+    def generate_text(_sefl, task_type, question, context, max_length, num_beams, no_repeat_ngram_size, early_stopping, use_template, question_type):
         try:
-            model, tokenizer = self.model_manager.model, self.model_manager.tokenizer
-            input_text = self.create_input_text(task_type, question, context, use_template, question_type)
+            model, tokenizer = _sefl.model_manager.model, _sefl.model_manager.tokenizer
+            input_text = _sefl.create_input_text(task_type, question, context, use_template, question_type)
             inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
             
             memory_before = memory_usage()
@@ -222,8 +222,8 @@ class CropGuideGenerator:
             st.error(f"An error occurred during text generation: {e}")
             return "", 0, None, None, None
 
-    def create_input_text(self, task_type, question, context, use_template, question_type):
-        templates = self.template_manager.get_templates()
+    def create_input_text(_sefl, task_type, question, context, use_template, question_type):
+        templates = _sefl.template_manager.get_templates()
         input_text = templates[question_type]["template"].format(question=question, context=context) if use_template else f"{context} {question}"
         if task_type == "Paraphrasing":
             input_text = f"paraphrase: {input_text}"
