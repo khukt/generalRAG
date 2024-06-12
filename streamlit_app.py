@@ -64,6 +64,20 @@ def load_embedding_model():
     log_decision("Loaded embedding model 'all-MiniLM-L6-v2'")
     return model
 
+def default_templates():
+    return {
+        "Planting Guide": {
+            "template": (
+                "Provide a guide on planting and growing the specified crop.\n\n"
+                "Question: {question}\n"
+                "Context: {context}\n"
+                "Guide:"
+            ),
+            "keywords": ["how", "grow", "plant", "cultivate"]
+        },
+        # Additional templates can be added here as needed
+    }
+
 @st.cache_data
 def load_templates_once():
     if os.path.exists('templates.json'):
@@ -352,7 +366,7 @@ if question:
         f"""
         <ul style='color:gray; font-size: small;'>
             <li>Resident Set Size (RSS): {mem_info.rss / (1024 ** 2):.2f} MB</li>
-            <li>Virtual Memory Size (VMS): {mem_info.vms / (1024 ** 2):.2f} MB</li>
+            <li>Virtual Memory Size (VMS): {mem_info.vms / (1024 ** 2)::.2f} MB</li>
             <li>Shared Memory: {mem_info.shared / (1024 ** 2):.2f} MB</li>
             <li>Text (Code): {mem_info.text / (1024 ** 2):.2f} MB</li>
             <li>Data + Stack: {mem_info.data / (1024 ** 2):.2f} MB</li>
