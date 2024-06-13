@@ -323,14 +323,6 @@ if st.button("Generate"):
         st.markdown(f"```{context}```")
 
         # Visualization of Cosine Similarity Scores
-        fig, ax = plt.subplots()
-        ax.bar(embedding_manager.crop_data.keys(), cosine_scores.cpu().numpy().flatten())
-        ax.set_ylabel('Cosine Similarity Score')
-        ax.set_xlabel('Crop Data Entry')
-        ax.set_title('Cosine Similarity Scores with Crop Data Entries')
-        st.pyplot(fig)
-
-
         crop_names = list(embedding_manager.crop_data.keys())
         cosine_scores = np.random.rand(len(crop_names))  # Replace with your actual cosine similarity scores
 
