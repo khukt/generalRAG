@@ -356,11 +356,9 @@ if st.button("Generate"):
             bargap=0.1,  # Gap between bars
         )
 
-# Display the Plotly chart in Streamlit
-st.plotly_chart(fig)
-
         # Display the Plotly chart in Streamlit
         st.plotly_chart(fig)
+
 
         step_visualization(6, "Determining question type", "Based on the keywords in the question, we determine the type of question (e.g., planting guide, common issues). This helps in selecting the appropriate template for generating the response.")
         
