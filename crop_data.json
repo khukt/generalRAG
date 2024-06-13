@@ -23,4 +23,76 @@
     "pest_management": "Use Bacillus thuringiensis (Bt) for earworms and rotate crops to manage rootworms.",
     "harvesting_techniques": "Harvest when ears are full and kernels are milky when punctured."
   }
+    "Lettuce": {
+    "name": "Lettuce",
+    "planting_season": "Spring and Fall",
+    "harvest_time": "Spring varieties: Early Summer; Fall varieties: Early Fall",
+    "soil_type": "Well-drained, fertile soil with good organic matter content",
+    "soil_preparation": "Ensure soil pH around 6.0-7.0; amend with compost or well-rotted manure before planting.",
+    "watering_frequency": "Regular and consistent watering; lettuce prefers moist soil.",
+    "fertilization_schedule": "Apply a balanced fertilizer at planting and again as plants reach halfway to mature size.",
+    "pests_diseases": ["Aphids", "Slugs", "Lettuce Leaf Aphid"],
+    "pest_management": "Use insecticidal soap for aphids and slug baits for slugs; introduce natural predators for aphid control.",
+    "harvesting_techniques": "Harvest outer leaves as needed once they reach a usable size, or cut the whole plant near the base for a full harvest."
+  },
+  "Carrot": {
+    "name": "Carrot",
+    "planting_season": "Spring and Fall",
+    "harvest_time": "Late Summer to Early Fall",
+    "soil_type": "Loose, well-drained soil free of rocks and heavy clay",
+    "soil_preparation": "Loosen soil to at least 12 inches deep and remove stones; add compost or aged manure for nutrients.",
+    "watering_frequency": "Regular watering to keep soil evenly moist, especially during germination and root development.",
+    "fertilization_schedule": "Avoid heavy fertilization; apply a light feeding of balanced fertilizer at planting time.",
+    "pests_diseases": ["Carrot Rust Fly", "Aphids", "Root Knot Nematodes"],
+    "pest_management": "Use row covers to prevent carrot rust fly; practice crop rotation to deter nematodes; use insecticidal soap for aphids.",
+    "harvesting_techniques": "Harvest carrots when roots reach desired size, usually around 1 inch in diameter; gently loosen soil to lift roots without breaking."
+  }
+  "Potato": {
+    "name": "Potato",
+    "planting_season": "Early Spring to Early Summer",
+    "harvest_time": "Late Summer to Early Fall",
+    "soil_type": "Loose, well-drained sandy loam with good organic matter content",
+    "soil_preparation": "Loosen soil to at least 6-8 inches deep; incorporate compost or aged manure for nutrients.",
+    "watering_frequency": "Regular watering to keep soil evenly moist, especially during tuber formation.",
+    "fertilization_schedule": "Apply a balanced fertilizer at planting time and again when plants begin to flower.",
+    "pests_diseases": ["Colorado Potato Beetle", "Late Blight", "Potato Scab"],
+    "pest_management": "Handpick beetles; use fungicides preventatively for blight; practice crop rotation to reduce scab.",
+    "harvesting_techniques": "Harvest new potatoes when plants flower; harvest main crop potatoes when plants begin to yellow and die back."
+  },
+  "Strawberry": {
+    "name": "Strawberry",
+    "planting_season": "Spring",
+    "harvest_time": "Late Spring to Early Summer",
+    "soil_type": "Well-drained, slightly acidic soil rich in organic matter",
+    "soil_preparation": "Add compost or aged manure to soil before planting; ensure good drainage to prevent root rot.",
+    "watering_frequency": "Regular watering to keep soil evenly moist, especially during flowering and fruit development.",
+    "fertilization_schedule": "Apply a balanced fertilizer at planting and again in early spring before growth resumes.",
+    "pests_diseases": ["Strawberry Aphid", "Spider Mites", "Gray Mold"],
+    "pest_management": "Use insecticidal soap for aphids and spider mites; remove infected plant parts to control gray mold.",
+    "harvesting_techniques": "Harvest ripe berries every 2-3 days; pick with the stem attached to prevent bruising; avoid washing until ready to eat."
+  }
+  "Broccoli": {
+    "name": "Broccoli",
+    "planting_season": "Spring and Fall",
+    "harvest_time": "Spring varieties: Late Spring to Early Summer; Fall varieties: Late Summer to Early Fall",
+    "soil_type": "Rich, well-drained soil with plenty of organic matter",
+    "soil_preparation": "Add well-aged compost or manure to soil before planting; ensure pH around 6.0-7.0.",
+    "watering_frequency": "Consistent watering, especially during head formation; keep soil moist but not waterlogged.",
+    "fertilization_schedule": "Apply nitrogen-rich fertilizer at planting and side-dress with compost during growth.",
+    "pests_diseases": ["Cabbage Worms", "Aphids", "Clubroot"],
+    "pest_management": "Use floating row covers for cabbage worms; handpick aphids; practice crop rotation to prevent clubroot.",
+    "harvesting_techniques": "Harvest main head when buds are tight and compact; side shoots can be harvested as they develop."
+  },
+  "Cucumber": {
+    "name": "Cucumber",
+    "planting_season": "Late Spring to Early Summer",
+    "harvest_time": "Summer to Early Fall",
+    "soil_type": "Well-drained, fertile soil rich in organic matter",
+    "soil_preparation": "Add compost or aged manure to soil before planting; ensure good drainage.",
+    "watering_frequency": "Regular and consistent watering; cucumbers need plenty of moisture for good fruit development.",
+    "fertilization_schedule": "Apply a balanced fertilizer at planting time and again when vines begin to run.",
+    "pests_diseases": ["Cucumber Beetle", "Powdery Mildew", "Downy Mildew"],
+    "pest_management": "Use row covers to protect against cucumber beetles; apply fungicides preventatively for mildews.",
+    "harvesting_techniques": "Harvest when cucumbers are firm and bright in color; cut them from the vine using scissors or a knife."
+  }
 }
