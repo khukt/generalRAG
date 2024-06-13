@@ -10,6 +10,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import signal
+import plotly.graph_objs as go
 
 MAX_MEMORY_MB = 2600  # Maximum memory usage allowed in MB
 
