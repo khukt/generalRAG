@@ -261,7 +261,7 @@ class CropGuideGenerator:
         return input_text
 
 # Streamlit UI
-st.title("Educational Crop Growing Guide Generator")
+st.title("DEMO: Crop Growing Guide with Retrieval-Augmented Generation")
 
 # Initialize managers
 model_manager = ModelManager("google/flan-t5-base")
