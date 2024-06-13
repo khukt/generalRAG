@@ -22,7 +22,7 @@
     "pests_diseases": ["Corn Earworm", "Rootworm", "Corn Smut"],
     "pest_management": "Use Bacillus thuringiensis (Bt) for earworms and rotate crops to manage rootworms.",
     "harvesting_techniques": "Harvest when ears are full and kernels are milky when punctured."
-  }
+  },
     "Lettuce": {
     "name": "Lettuce",
     "planting_season": "Spring and Fall",
@@ -46,7 +46,7 @@
     "pests_diseases": ["Carrot Rust Fly", "Aphids", "Root Knot Nematodes"],
     "pest_management": "Use row covers to prevent carrot rust fly; practice crop rotation to deter nematodes; use insecticidal soap for aphids.",
     "harvesting_techniques": "Harvest carrots when roots reach desired size, usually around 1 inch in diameter; gently loosen soil to lift roots without breaking."
-  }
+  },
   "Potato": {
     "name": "Potato",
     "planting_season": "Early Spring to Early Summer",
@@ -70,7 +70,7 @@
     "pests_diseases": ["Strawberry Aphid", "Spider Mites", "Gray Mold"],
     "pest_management": "Use insecticidal soap for aphids and spider mites; remove infected plant parts to control gray mold.",
     "harvesting_techniques": "Harvest ripe berries every 2-3 days; pick with the stem attached to prevent bruising; avoid washing until ready to eat."
-  }
+  },
   "Broccoli": {
     "name": "Broccoli",
     "planting_season": "Spring and Fall",
