@@ -334,11 +334,17 @@ if st.button("Generate"):
         crop_names = list(embedding_manager.crop_data.keys())
         cosine_scores = np.random.rand(len(crop_names))  # Replace with your actual cosine similarity scores
 
-        # Create a Plotly bar chart
+        # Define a colormap for the bars
+        colors = ['rgba(31, 119, 180, 0.8)', 'rgba(255, 127, 14, 0.8)', 'rgba(44, 160, 44, 0.8)',
+          'rgba(214, 39, 40, 0.8)', 'rgba(148, 103, 189, 0.8)', 'rgba(140, 86, 75, 0.8)',
+          'rgba(227, 119, 194, 0.8)', 'rgba(127, 127, 127, 0.8)', 'rgba(188, 189, 34, 0.8)',
+          'rgba(23, 190, 207, 0.8)']  # You can add more colors if needed
+
+        # Create a Plotly bar chart with custom colors
         fig = go.Figure(data=[go.Bar(
             x=crop_names,
             y=cosine_scores,
-            marker_color='skyblue',  # Change color if desired
+            marker_color=colors,
         )])
 
         # Customize layout
@@ -349,6 +355,9 @@ if st.button("Generate"):
             xaxis_tickangle=-45,  # Rotate x-axis labels for better readability
             bargap=0.1,  # Gap between bars
         )
+
+# Display the Plotly chart in Streamlit
+st.plotly_chart(fig)
 
         # Display the Plotly chart in Streamlit
         st.plotly_chart(fig)
