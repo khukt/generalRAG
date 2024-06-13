@@ -330,6 +330,29 @@ if st.button("Generate"):
         ax.set_title('Cosine Similarity Scores with Crop Data Entries')
         st.pyplot(fig)
 
+
+        crop_names = list(embedding_manager.crop_data.keys())
+        cosine_scores = np.random.rand(len(crop_names))  # Replace with your actual cosine similarity scores
+
+        # Create a Plotly bar chart
+        fig = go.Figure(data=[go.Bar(
+            x=crop_names,
+            y=cosine_scores,
+            marker_color='skyblue',  # Change color if desired
+        )])
+
+        # Customize layout
+        fig.update_layout(
+            title='Cosine Similarity Scores with Crop Data Entries',
+            xaxis_title='Crop Data Entry',
+            yaxis_title='Cosine Similarity Score',
+            xaxis_tickangle=-45,  # Rotate x-axis labels for better readability
+            bargap=0.1,  # Gap between bars
+        )
+
+        # Display the Plotly chart in Streamlit
+        st.plotly_chart(fig)
+
         step_visualization(6, "Determining question type", "Based on the keywords in the question, we determine the type of question (e.g., planting guide, common issues). This helps in selecting the appropriate template for generating the response.")
         
         crop_guide_generator = CropGuideGenerator(model_manager, embedding_manager, template_manager)
