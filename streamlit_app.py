@@ -282,6 +282,34 @@ if "embeddings" not in st.session_state:
     st.session_state.embeddings = generate_and_cache_embeddings(embedding_manager.embedding_model, embedding_manager.crop_data, embedding_manager.generate_context)
 
 # Sidebar configuration
+# Sidebar configuration
+with st.sidebar:
+    st.title("Configuration")
+    with st.expander("Task Settings"):
+        task_type = st.selectbox("Select Task", ["Text Generation", "Summarization", "Question Answering", "Paraphrasing", "NER"])
+        use_template = st.checkbox("Use Template", value=True)
+
+    with st.expander("Model Parameters"):
+        max_length = st.slider("Max Length", 50, 500, 300)
+        num_beams = st.slider("Number of Beams", 1, 10, 5)
+        no_repeat_ngram_size = st.slider("No Repeat N-Gram Size", 1, 10, 2)
+        early_stopping = st.checkbox("Early Stopping", value=True)
+
+    with st.expander("Template Management"):
+        selected_question_type = st.selectbox("Select Question Type", list(template_manager.get_templates().keys()))
+        template_input = st.text_area("Template", value=template_manager.get_templates()[selected_question_type]["template"])
+        keywords_input = st.text_area("Keywords (comma separated)", value=", ".join(template_manager.get_templates()[selected_question_type]["keywords"]))
+        if st.button("Save Template"):
+            template_manager.update_template(selected_question_type, template_input, keywords_input)
+            st.success("Template saved successfully!")
+
+    with st.expander("Cache Management"):
+        if st.button("Clear Cache and Reload Data"):
+            st.experimental_rerun()
+        if st.button("Clear Cache and Reload Templates"):
+            template_manager.load_templates()
+            st.experimental_rerun()
+
 st.sidebar.title("Configuration")
 task_type = st.sidebar.selectbox("Select Task", ["Text Generation", "Summarization", "Question Answering", "Paraphrasing", "NER"])
 use_template = st.sidebar.checkbox("Use Template", value=True)
