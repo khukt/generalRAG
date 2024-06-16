@@ -75,7 +75,7 @@ def highlight_text(tokenizer, input_text, input_ids, attention_weights):
     highlighted_text = ""
     for token, weight in zip(tokens, attention_weights):
         token = token.replace('▁', '')  # Remove special character for readability
-        color = f"rgba(255, 0, 0, {weight[0]})"  # Red color with transparency based on attention weight
+        color = f"rgba(255, 0, 0, {weight})"  # Red color with transparency based on attention weight
         highlighted_text += f"<span style='background-color: {color}'>{token}</span> "
     return highlighted_text
 
@@ -283,35 +283,35 @@ st.markdown("""
 
 st.sidebar.title("Configuration")
 with st.sidebar:
-    task_type = st.selectbox("Select Task", ["Text Generation", "Summarization", "Question Answering", "Paraphrasing", "NER"])
-    use_template = st.checkbox("Use Template", value=True)
+    task_type = st.selectbox("Select Task", ["Text Generation", "Summarization", "Question Answering", "Paraphrasing", "NER"], key="task_type")
+    use_template = st.checkbox("Use Template", value=True, key="use_template")
 
     st.title("Model Parameters")
-    max_length = st.slider("Max Length", 50, 500, 300)
-    num_beams = st.slider("Number of Beams", 1, 10, 5)
-    no_repeat_ngram_size = st.slider("No Repeat N-Gram Size", 1, 10, 2)
-    early_stopping = st.checkbox("Early Stopping", value=True)
+    max_length = st.slider("Max Length", 50, 500, 300, key="max_length")
+    num_beams = st.slider("Number of Beams", 1, 10, 5, key="num_beams")
+    no_repeat_ngram_size = st.slider("No Repeat N-Gram Size", 1, 10, 2, key="no_repeat_ngram_size")
+    early_stopping = st.checkbox("Early Stopping", value=True, key="early_stopping")
 
     st.title("Template Management")
-    selected_question_type = st.selectbox("Select Question Type", list(template_manager.get_templates().keys()))
-    template_input = st.text_area("Template", value=template_manager.get_templates()[selected_question_type]["template"])
-    keywords_input = st.text_area("Keywords (comma separated)", value=", ".join(template_manager.get_templates()[selected_question_type]["keywords"]))
-    if st.button("Save Template"):
+    selected_question_type = st.selectbox("Select Question Type", list(template_manager.get_templates().keys()), key="selected_question_type")
+    template_input = st.text_area("Template", value=template_manager.get_templates()[selected_question_type]["template"], key="template_input")
+    keywords_input = st.text_area("Keywords (comma separated)", value=", ".join(template_manager.get_templates()[selected_question_type]["keywords"]), key="keywords_input")
+    if st.button("Save Template", key="save_template"):
         template_manager.update_template(selected_question_type, template_input, keywords_input)
         st.success("Template saved successfully!")
 
     st.title("Cache Management")
-    if st.button("Clear Cache and Reload Data"):
+    if st.button("Clear Cache and Reload Data", key="clear_cache_reload_data"):
         st.experimental_rerun()
-    if st.button("Clear Cache and Reload Templates"):
+    if st.button("Clear Cache and Reload Templates", key="clear_cache_reload_templates"):
         template_manager.load_templates()
         st.experimental_rerun()
 
 st.header("Ask Your Question")
-question = st.text_input("Question", value="How to grow tomatoes?", key="question", help="Enter your question about crop growing here.")
+question = st.text_input("Question", value="How to grow tomatoes?", key="question_input", help="Enter your question about crop growing here.")
 log_question(question)
 
-if st.button("Generate Guide"):
+if st.button("Generate Guide", key="generate_guide"):
     if question:
         check_memory_usage()  # Check memory usage before processing each request
         step_visualization(1, "Loading the model", "We load a pre-trained T5 model which is designed for text generation tasks. This model is capable of generating coherent and contextually appropriate text based on the given input.")
