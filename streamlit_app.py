@@ -77,7 +77,7 @@ def highlight_text(tokenizer, input_text, input_ids, attention_weights):
     highlighted_text = ""
     for token, weight in zip(tokens, attention_weights):
         token = token.replace('▁', '')  # Remove special character for readability
-        color = f"rgba(255, 0, 0, {weight[0]})"  # Red color with transparency based on attention weight
+        color = f"rgba(255, 0, 0, {weight})"  # Red color with transparency based on attention weight
         highlighted_text += f"<span style='background-color: {color}'>{token}</span> "
     return highlighted_text
 
@@ -105,7 +105,7 @@ def load_embedding_model():
 def load_crop_data():
     with open('crop_data.json', 'r') as file:
         data = json.load(file)
-    log_decision(f"Loaded crop data from crop_data.json")
+    log_decision("Loaded crop data from crop_data.json")
     return data
 
 @st.cache_data
@@ -282,7 +282,6 @@ if "embeddings" not in st.session_state:
     st.session_state.embeddings = generate_and_cache_embeddings(embedding_manager.embedding_model, embedding_manager.crop_data, embedding_manager.generate_context)
 
 # Sidebar configuration
-# Sidebar configuration
 with st.sidebar:
     st.title("Configuration")
     with st.expander("Task Settings"):
@@ -310,27 +309,6 @@ with st.sidebar:
             template_manager.load_templates()
             st.experimental_rerun()
 
-st.sidebar.title("Configuration")
-task_type = st.sidebar.selectbox("Select Task", ["Text Generation", "Summarization", "Question Answering", "Paraphrasing", "NER"])
-use_template = st.sidebar.checkbox("Use Template", value=True)
-st.sidebar.title("Model Parameters")
-max_length = st.sidebar.slider("Max Length", 50, 500, 300)
-num_beams = st.sidebar.slider("Number of Beams", 1, 10, 5)
-no_repeat_ngram_size = st.sidebar.slider("No Repeat N-Gram Size", 1, 10, 2)
-early_stopping = st.sidebar.checkbox("Early Stopping", value=True)
-st.sidebar.title("Template Configuration")
-selected_question_type = st.sidebar.selectbox("Select Question Type", list(template_manager.get_templates().keys()))
-template_input = st.sidebar.text_area("Template", value=template_manager.get_templates()[selected_question_type]["template"])
-keywords_input = st.sidebar.text_area("Keywords (comma separated)", value=", ".join(template_manager.get_templates()[selected_question_type]["keywords"]))
-if st.sidebar.button("Save Template"):
-    template_manager.update_template(selected_question_type, template_input, keywords_input)
-    st.sidebar.success("Template saved successfully!")
-st.sidebar.title("Cache Management")
-if st.sidebar.button("Clear Cache and Reload Data"):
-    st.experimental_rerun()
-if st.sidebar.button("Clear Cache and Reload Templates"):
-    template_manager.load_templates()
-    st.experimental_rerun()
 # Main input and processing section
 question = st.text_input("Question", value="How to grow tomatoes?", key="question", help="Enter your question about crop growing here.")
 log_question(question)
@@ -361,7 +339,7 @@ if st.button("Generate"):
 
         # Visualization of Cosine Similarity Scores
         crop_names = list(embedding_manager.crop_data.keys())
-        cosine_scores = np.random.rand(len(crop_names))  # Replace with your actual cosine similarity scores
+        cosine_scores = cosine_scores[0].numpy()  # Get cosine scores as numpy array
 
         # Define a colormap for the bars
         colors = ['rgba(31, 119, 180, 0.8)', 'rgba(255, 127, 14, 0.8)', 'rgba(44, 160, 44, 0.8)',
@@ -387,7 +365,6 @@ if st.button("Generate"):
 
         # Display the Plotly chart in Streamlit
         st.plotly_chart(fig)
-
 
         step_visualization(6, "Determining question type", "Based on the keywords in the question, we determine the type of question (e.g., planting guide, common issues). This helps in selecting the appropriate template for generating the response.")
         
