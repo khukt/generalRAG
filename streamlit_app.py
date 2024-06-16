@@ -296,12 +296,6 @@ with st.expander("⚠️ Disclaimer"):
     </div>
     """, unsafe_allow_html=True)
 
-# Main input and processing section
-st.markdown("---")
-st.subheader("🔍 Ask Your Question About Crop Growing")
-question = st.text_input("Type your question here:", value="How to grow tomatoes?", key="question", help="Enter your question about crop growing here.")
-log_question(question)
-
 
 # Initialize managers
 model_manager = ModelManager("google/flan-t5-base")
@@ -341,6 +335,8 @@ with st.sidebar:
             st.experimental_rerun()
 
 # Main input and processing section
+st.markdown("---")
+st.subheader("🔍 Ask Your Question About Crop Growing")
 question = st.text_input("Question", value="How to grow tomatoes?", key="question", help="Enter your question about crop growing here.")
 log_question(question)
 
