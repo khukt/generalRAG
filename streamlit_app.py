@@ -260,11 +260,30 @@ class CropGuideGenerator:
             input_text = f"ner: {input_text}"
         return input_text
 
-# Streamlit UI
 # Title and Introduction
 st.title("🌱 DEMO: Crop Growing Guide with Retrieval-Augmented Generation")
 st.markdown("""
 <p style="font-size:18px;">Welcome to our demonstration of a customized lightweight Retrieval-Augmented Generation model. This application is designed for educational purposes to help you understand various aspects of crop growing and related technologies.</p>
+""", unsafe_allow_html=True)
+
+# About the GENI Information Technology Research Team
+st.header("👨‍🔬 About the GENI Information Technology Research Team")
+st.markdown("""
+<p style="font-size:18px;">
+The GENI Information Technology research team is at the forefront of integrating cutting-edge artificial intelligence with practical agricultural applications. Our mission is to innovate and develop AI-driven solutions that support sustainable farming practices, enhance crop yields, and improve resource management.
+
+### Our Focus Areas:
+- **Retrieval-Augmented Generation (RAG)**: Leveraging RAG models to provide detailed and contextually relevant information to farmers and agricultural professionals.
+- **Data Integration**: Combining diverse datasets from various sources to create comprehensive knowledge bases for crop management.
+- **Sustainability**: Promoting sustainable agricultural practices through AI-driven insights and recommendations.
+
+### Key Outputs:
+- **Customized Crop Growing Guides**: Providing step-by-step instructions tailored to specific crops and local conditions.
+- **Real-Time Decision Support**: Offering real-time advice and solutions for common agricultural challenges.
+- **Educational Tools**: Developing tools and applications that facilitate learning and knowledge sharing among farmers and agronomists.
+
+This demo showcases one of our innovative applications that integrates retrieval-augmented generation to deliver precise and actionable crop growing guides. We aim to empower farmers with the knowledge they need to optimize their practices and achieve better outcomes.
+</p>
 """, unsafe_allow_html=True)
 
 # Divider
