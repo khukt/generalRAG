@@ -261,16 +261,22 @@ class CropGuideGenerator:
         return input_text
 
 # Streamlit UI
-st.title("DEMO: Crop Growing Guide with Retrieval-Augmented Generation")
-# Description and Introduction
-st.markdown('''
-This application is developed solely for educational purposes, aiming to demonstrate customized lightweight Retrieval-Augmented Generation.
-''')
+# Title and Introduction
+st.title("🌱 DEMO: Crop Growing Guide with Retrieval-Augmented Generation")
+st.markdown("""
+<p style="font-size:18px;">Welcome to our demonstration of a customized lightweight Retrieval-Augmented Generation model. This application is designed for educational purposes to help you understand various aspects of crop growing and related technologies.</p>
+""", unsafe_allow_html=True)
+
+# Divider
+st.markdown("---")
+
 # Disclaimer Section
-st.header('Disclaimer')
-st.markdown('''
-**Note**: This app is created for educational purposes only. It serves as a tool for learning and understanding different aspects of [your specific field or topic]. Any data or results presented are simulated or sourced from publicly available datasets, and should not be used for real-world decision-making without proper validation.
-''')
+st.header("⚠️ Disclaimer")
+st.markdown("""
+<div style="background-color:#f8d7da; color:#721c24; padding: 15px; border-radius: 5px; border: 1px solid #f5c6cb;">
+    <strong>Note:</strong> This app is created for educational purposes only. It serves as a tool for learning and understanding different aspects of your specific field or topic. Any data or results presented are simulated or sourced from publicly available datasets and should not be used for real-world decision-making without proper validation.
+</div>
+""", unsafe_allow_html=True)
 
 # Initialize managers
 model_manager = ModelManager("google/flan-t5-base")
