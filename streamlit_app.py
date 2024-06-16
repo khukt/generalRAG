@@ -8,8 +8,6 @@ import logging
 import time
 import os
 import numpy as np
-import matplotlib.pyplot as plt
-import signal
 import plotly.graph_objs as go
 
 MAX_MEMORY_MB = 2600  # Maximum memory usage allowed in MB
@@ -261,59 +259,59 @@ class CropGuideGenerator:
         return input_text
 
 # Streamlit UI
-st.title("DEMO: Crop Growing Guide with Retrieval-Augmented Generation")
-# Description and Introduction
-st.markdown('''
-This application is developed solely for educational purposes, aiming to demonstrate customized lightweight Retrieval-Augmented Generation.
-''')
-# Disclaimer Section
-st.header('Disclaimer')
-st.markdown('''
-**Note**: This app is created for educational purposes only. It serves as a tool for learning and understanding different aspects of [your specific field or topic]. Any data or results presented are simulated or sourced from publicly available datasets, and should not be used for real-world decision-making without proper validation.
-''')
+st.set_page_config(
+    page_title="Crop Growing Guide with Retrieval-Augmented Generation",
+    page_icon="🌱",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
 
-# Initialize managers
-model_manager = ModelManager("google/flan-t5-base")
-embedding_manager = EmbeddingManager()
-template_manager = TemplateManager()
+st.title("🌱 Crop Growing Guide with Retrieval-Augmented Generation")
+st.markdown("""
+<div style='background-color: #f9f9f9; padding: 15px; border-radius: 10px;'>
+    <h3>About This Application</h3>
+    <p>This application is developed solely for educational purposes, aiming to demonstrate customized lightweight Retrieval-Augmented Generation.</p>
+</div>
+""", unsafe_allow_html=True)
 
-# Load embeddings
-if "embeddings" not in st.session_state:
-    st.session_state.embeddings = generate_and_cache_embeddings(embedding_manager.embedding_model, embedding_manager.crop_data, embedding_manager.generate_context)
+st.header("⚠️ Disclaimer")
+st.markdown("""
+<div style='background-color: #fff3cd; padding: 15px; border-radius: 10px;'>
+    <p><strong>Note:</strong> This app is created for educational purposes only. It serves as a tool for learning and understanding different aspects of [your specific field or topic]. Any data or results presented are simulated or sourced from publicly available datasets, and should not be used for real-world decision-making without proper validation.</p>
+</div>
+""", unsafe_allow_html=True)
 
-# Sidebar configuration
+st.sidebar.title("Configuration")
 with st.sidebar:
-    st.title("Configuration")
-    with st.expander("Task Settings"):
-        task_type = st.selectbox("Select Task", ["Text Generation", "Summarization", "Question Answering", "Paraphrasing", "NER"])
-        use_template = st.checkbox("Use Template", value=True)
+    task_type = st.selectbox("Select Task", ["Text Generation", "Summarization", "Question Answering", "Paraphrasing", "NER"])
+    use_template = st.checkbox("Use Template", value=True)
 
-    with st.expander("Model Parameters"):
-        max_length = st.slider("Max Length", 50, 500, 300)
-        num_beams = st.slider("Number of Beams", 1, 10, 5)
-        no_repeat_ngram_size = st.slider("No Repeat N-Gram Size", 1, 10, 2)
-        early_stopping = st.checkbox("Early Stopping", value=True)
+    st.title("Model Parameters")
+    max_length = st.slider("Max Length", 50, 500, 300)
+    num_beams = st.slider("Number of Beams", 1, 10, 5)
+    no_repeat_ngram_size = st.slider("No Repeat N-Gram Size", 1, 10, 2)
+    early_stopping = st.checkbox("Early Stopping", value=True)
 
-    with st.expander("Template Management"):
-        selected_question_type = st.selectbox("Select Question Type", list(template_manager.get_templates().keys()))
-        template_input = st.text_area("Template", value=template_manager.get_templates()[selected_question_type]["template"])
-        keywords_input = st.text_area("Keywords (comma separated)", value=", ".join(template_manager.get_templates()[selected_question_type]["keywords"]))
-        if st.button("Save Template"):
-            template_manager.update_template(selected_question_type, template_input, keywords_input)
-            st.success("Template saved successfully!")
+    st.title("Template Management")
+    selected_question_type = st.selectbox("Select Question Type", list(template_manager.get_templates().keys()))
+    template_input = st.text_area("Template", value=template_manager.get_templates()[selected_question_type]["template"])
+    keywords_input = st.text_area("Keywords (comma separated)", value=", ".join(template_manager.get_templates()[selected_question_type]["keywords"]))
+    if st.button("Save Template"):
+        template_manager.update_template(selected_question_type, template_input, keywords_input)
+        st.success("Template saved successfully!")
 
-    with st.expander("Cache Management"):
-        if st.button("Clear Cache and Reload Data"):
-            st.experimental_rerun()
-        if st.button("Clear Cache and Reload Templates"):
-            template_manager.load_templates()
-            st.experimental_rerun()
+    st.title("Cache Management")
+    if st.button("Clear Cache and Reload Data"):
+        st.experimental_rerun()
+    if st.button("Clear Cache and Reload Templates"):
+        template_manager.load_templates()
+        st.experimental_rerun()
 
-# Main input and processing section
+st.header("Ask Your Question")
 question = st.text_input("Question", value="How to grow tomatoes?", key="question", help="Enter your question about crop growing here.")
 log_question(question)
 
-if st.button("Generate"):
+if st.button("Generate Guide"):
     if question:
         check_memory_usage()  # Check memory usage before processing each request
         step_visualization(1, "Loading the model", "We load a pre-trained T5 model which is designed for text generation tasks. This model is capable of generating coherent and contextually appropriate text based on the given input.")
