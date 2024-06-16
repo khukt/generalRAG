@@ -352,6 +352,7 @@ if "embeddings" not in st.session_state:
 
 # Sidebar configuration
 with st.sidebar:
+    st.image("https://geni.asia/wp-content/uploads/2021/12/Full_logo_Color.png", use_column_width=True)
     st.title("Configuration")
     with st.expander("Task Settings"):
         task_type = st.selectbox("Select Task", ["Text Generation", "Summarization", "Question Answering", "Paraphrasing", "NER"])
