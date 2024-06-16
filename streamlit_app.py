@@ -263,33 +263,29 @@ class CropGuideGenerator:
 # Title and Introduction
 st.title("🌱 DEMO: Crop Growing Guide with Retrieval-Augmented Generation")
 st.markdown("""
-<div style="font-size:18px; padding: 10px; border-radius: 5px; background-color: #f0f8ff;">
-    <p>Welcome to our demonstration of a customized lightweight Retrieval-Augmented Generation model. This application is designed for educational purposes to help you understand various aspects of crop growing and related technologies.</p>
-</div>
+<p style="font-size:18px;">
+Welcome to our demonstration of a customized lightweight Retrieval-Augmented Generation model. This application is designed for educational purposes to help you understand various aspects of crop growing and related technologies through the use of advanced transformer models and context-aware techniques.
+</p>
 """, unsafe_allow_html=True)
 
 # About the GENI Information Technology Research Team
 st.header("👨‍🔬 About the GENI Information Technology Research Team")
 st.markdown("""
-<div style="font-size:18px; padding: 10px; border-radius: 5px; background-color: #e6ffe6;">
-    <p>The GENI Information Technology research team is at the forefront of integrating cutting-edge artificial intelligence with practical agricultural applications. Our mission is to innovate and develop AI-driven solutions that support sustainable farming practices, enhance crop yields, and improve resource management.</p>
-    
-    <h3>Our Focus Areas:</h3>
-    <ul>
-        <li><strong>Retrieval-Augmented Generation (RAG):</strong> Leveraging RAG models to provide detailed and contextually relevant information to farmers and agricultural professionals.</li>
-        <li><strong>Data Integration:</strong> Combining diverse datasets from various sources to create comprehensive knowledge bases for crop management.</li>
-        <li><strong>Sustainability:</strong> Promoting sustainable agricultural practices through AI-driven insights and recommendations.</li>
-    </ul>
-    
-    <h3>Key Outputs:</h3>
-    <ul>
-        <li><strong>Customized Crop Growing Guides:</strong> Providing step-by-step instructions tailored to specific crops and local conditions.</li>
-        <li><strong>Real-Time Decision Support:</strong> Offering real-time advice and solutions for common agricultural challenges.</li>
-        <li><strong>Educational Tools:</strong> Developing tools and applications that facilitate learning and knowledge sharing among farmers and agronomists.</li>
-    </ul>
-    
-    <p>This demo showcases one of our innovative applications that integrates retrieval-augmented generation to deliver precise and actionable crop growing guides. We aim to empower farmers with the knowledge they need to optimize their practices and achieve better outcomes.</p>
-</div>
+<p style="font-size:18px;">
+The GENI Information Technology research team is dedicated to advancing the field of artificial intelligence through the development and application of transformer models and context-aware technologies. Our primary goal is to create educational tools that demonstrate the practical uses of these technologies in various domains, including agriculture.
+</p>
+
+### Our Focus Areas:
+- **Transformer Models**: Utilizing state-of-the-art transformer models such as T5 and BERT to generate, paraphrase, and summarize text.
+- **Context-Aware Systems**: Developing systems that can understand and utilize context to provide more accurate and relevant information.
+- **Educational Tools**: Creating interactive applications to help users learn about and experiment with AI technologies.
+
+### Key Outputs:
+- **Interactive Demos**: Showcasing the capabilities of transformer models in generating detailed and contextually relevant crop growing guides.
+- **Learning Resources**: Providing resources and examples for students and professionals to understand the workings of transformer models and context-aware systems.
+- **Innovative Applications**: Developing applications that integrate AI technologies into real-world scenarios for educational purposes.
+
+This demo specifically illustrates how retrieval-augmented generation can be applied to provide precise and actionable crop growing guides by leveraging transformer models and context-aware techniques.
 """, unsafe_allow_html=True)
 
 # Divider
