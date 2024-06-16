@@ -263,41 +263,45 @@ class CropGuideGenerator:
 # Title and Introduction
 st.title("🌱 DEMO: Crop Growing Guide with Retrieval-Augmented Generation")
 st.markdown("""
-<p style="font-size:18px;">
+<p style="font-size:18px; text-align: center;">
 Welcome to our demonstration of a customized lightweight Retrieval-Augmented Generation model. This application is designed for educational purposes to help you understand various aspects of crop growing and related technologies through the use of advanced transformer models and context-aware techniques.
 </p>
 """, unsafe_allow_html=True)
 
 # About the GENI Information Technology Research Team
-st.header("👨‍🔬 About the GENI Information Technology Research Team")
-st.markdown("""
-<p style="font-size:18px;">
-The GENI Information Technology research team is dedicated to advancing the field of artificial intelligence through the development and application of transformer models and context-aware technologies. Our primary goal is to create educational tools that demonstrate the practical uses of these technologies in various domains, including agriculture.
-</p>
+with st.expander("👨‍🔬 About the GENI Information Technology Research Team"):
+    st.markdown("""
+    <p style="font-size:16px;">
+    The GENI Information Technology research team is dedicated to advancing the field of artificial intelligence through the development and application of transformer models and context-aware technologies. Our primary goal is to create educational tools that demonstrate the practical uses of these technologies in various domains, including agriculture.
+    </p>
 
-### Our Focus Areas:
-- **Transformer Models**: Utilizing state-of-the-art transformer models such as T5 and BERT to generate, paraphrase, and summarize text.
-- **Context-Aware Systems**: Developing systems that can understand and utilize context to provide more accurate and relevant information.
-- **Educational Tools**: Creating interactive applications to help users learn about and experiment with AI technologies.
+    ### Our Focus Areas:
+    - **Transformer Models**: Utilizing state-of-the-art transformer models such as T5 and BERT to generate, paraphrase, and summarize text.
+    - **Context-Aware Systems**: Developing systems that can understand and utilize context to provide more accurate and relevant information.
+    - **Educational Tools**: Creating interactive applications to help users learn about and experiment with AI technologies.
 
-### Key Outputs:
-- **Interactive Demos**: Showcasing the capabilities of transformer models in generating detailed and contextually relevant crop growing guides.
-- **Learning Resources**: Providing resources and examples for students and professionals to understand the workings of transformer models and context-aware systems.
-- **Innovative Applications**: Developing applications that integrate AI technologies into real-world scenarios for educational purposes.
+    ### Key Outputs:
+    - **Interactive Demos**: Showcasing the capabilities of transformer models in generating detailed and contextually relevant crop growing guides.
+    - **Learning Resources**: Providing resources and examples for students and professionals to understand the workings of transformer models and context-aware systems.
+    - **Innovative Applications**: Developing applications that integrate AI technologies into real-world scenarios for educational purposes.
 
-This demo specifically illustrates how retrieval-augmented generation can be applied to provide precise and actionable crop growing guides by leveraging transformer models and context-aware techniques.
-""", unsafe_allow_html=True)
-
-# Divider
-st.markdown("---")
+    This demo specifically illustrates how retrieval-augmented generation can be applied to provide precise and actionable crop growing guides by leveraging transformer models and context-aware techniques.
+    """, unsafe_allow_html=True)
 
 # Disclaimer Section
-st.header("⚠️ Disclaimer")
-st.markdown("""
-<div style="background-color:#f8d7da; color:#721c24; padding: 15px; border-radius: 5px; border: 1px solid #f5c6cb;">
-    <strong>Note:</strong> This app is created for educational purposes only. It serves as a tool for learning and understanding different aspects of your specific field or topic. Any data or results presented are simulated or sourced from publicly available datasets and should not be used for real-world decision-making without proper validation.
-</div>
-""", unsafe_allow_html=True)
+with st.expander("⚠️ Disclaimer"):
+    st.markdown("""
+    <div style="background-color:#f8d7da; color:#721c24; padding: 15px; border-radius: 5px; border: 1px solid #f5c6cb;">
+        <strong>Note:</strong> This app is created for educational purposes only. It serves as a tool for learning and understanding different aspects of your specific field or topic. Any data or results presented are simulated or sourced from publicly available datasets and should not be used for real-world decision-making without proper validation.
+    </div>
+    """, unsafe_allow_html=True)
+
+# Main input and processing section
+st.markdown("---")
+st.subheader("🔍 Ask Your Question About Crop Growing")
+question = st.text_input("Type your question here:", value="How to grow tomatoes?", key="question", help="Enter your question about crop growing here.")
+log_question(question)
+
 
 # Initialize managers
 model_manager = ModelManager("google/flan-t5-base")
