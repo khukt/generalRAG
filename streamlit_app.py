@@ -175,7 +175,51 @@ class TemplateManager:
                 ),
                 "keywords": ["how", "grow", "plant", "cultivate"]
             },
-            # Additional templates as in original code
+            "Common Issues": {
+                "template": (
+                    "Explain common issues and their solutions for growing the specified crop.\n\n"
+                    "Question: {question}\n"
+                    "Context: {context}\n"
+                    "Issues and Solutions:"
+                ),
+                "keywords": ["issues", "problems", "diseases", "pests"]
+            },
+            "Best Practices": {
+                "template": (
+                    "List the best practices for growing the specified crop.\n\n"
+                    "Question: {question}\n"
+                    "Context: {context}\n"
+                    "Best Practices:"
+                ),
+                "keywords": ["best practices", "tips", "guidelines", "recommendations"]
+            },
+            "Watering Schedule": {
+                "template": (
+                    "Provide a watering schedule for the specified crop.\n\n"
+                    "Question: {question}\n"
+                    "Context: {context}\n"
+                    "Watering Schedule:"
+                ),
+                "keywords": ["watering", "irrigation", "water schedule"]
+            },
+            "Fertilization Tips": {
+                "template": (
+                    "Provide fertilization tips for the specified crop.\n\n"
+                    "Question: {question}\n"
+                    "Context: {context}\n"
+                    "Fertilization Tips:"
+                ),
+                "keywords": ["fertilization", "fertilizer", "feeding", "nutrition"]
+            },
+            "Harvest Timing": {
+                "template": (
+                    "Provide harvest timing information for the specified crop.\n\n"
+                    "Question: {question}\n"
+                    "Context: {context}\n"
+                    "Harvest Timing:"
+                ),
+                "keywords": ["harvest", "harvesting", "pick", "picking"]
+            }
         }
 
     def get_templates(self):
